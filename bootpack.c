@@ -6,14 +6,6 @@
 #include <stdio.h>
 #include "bootpack.h"
 
-extern struct FIFO8 keyfifo;
-extern struct FIFO8 mousefifo;
-
-struct MOUSEINFO{
-    unsigned char phase,buf[3];
-    int x, y, btn;
-};
-
 /* main */
 void HariMain(void)
 {
@@ -110,93 +102,4 @@ void HariMain(void)
             }
         }
     }
-}
-
-#define PORT_KEYDAT             0x0060
-#define PORT_KEYSTA             0x0064
-#define PORT_KEYCMD             0x0064  // KBC
-#define KEYSTA_SEND_NOTREADY    0x02    // KBCの制御命令受付可能判定用
-#define KEYCMD_WRITE_MODE       0x60    // モード設定のためのモード
-#define KBC_MODE                0x47    // マウスを利用するためのモード
-
-/**
- * KBCがデータ送信可能になるのを待つ
- */
-void wait_KBC_sendready(void){
-    for (;;) {
-        if ((io_in8(PORT_KEYSTA) & KEYSTA_SEND_NOTREADY) == 0) {
-            break;
-        }
-    }
-    return;
-}
-
-/**
- * KBCの初期化
- */
-void init_keyboard(void){
-    wait_KBC_sendready();                       // 待ち状態
-    io_out8(PORT_KEYCMD, KEYCMD_WRITE_MODE);    // モードを設定することを通知
-    wait_KBC_sendready();                       // 待ち状態
-    io_out8(PORT_KEYDAT, KBC_MODE);             // モード設定(マウス使用モード)
-    return;
-}
-
-#define KEYCMD_SENDTO_MOUSE     0xd4    // マウスへの命令送信
-#define MOUSECMD_ENABLE         0xf4    // マウスへの有効化命令
-
-/**
- * マウスに有効化命令を送信する
- */
-void enable_mouse(struct MOUSEINFO *mf){
-    wait_KBC_sendready();                       // 待ち状態
-    io_out8(PORT_KEYCMD, KEYCMD_SENDTO_MOUSE);  // マウスにデータを送信する
-    wait_KBC_sendready();                       // 待ち状態
-    io_out8(PORT_KEYDAT, MOUSECMD_ENABLE);      // 有効化命令を送信
-    mf->phase = 0;
-    return; /* マウスからACK(0xfa)が送信されてくる */
-}
-
-int mouse_decode(struct MOUSEINFO *mf, unsigned char data){
-    switch (mf->phase){
-        case 0:
-            if(data == 0xfa){
-                mf->phase++;
-            }
-            return 0;
-            break;
-        case 1:
-            /**
-             * 1byte目：移動に反応する．0～3桁
-             * 2bute目：クリックに反応する．8～F桁
-             */
-            if((data & 0xc8) == 0x08){
-                mf->buf[0] = data;
-                mf->phase++;
-            }
-            return 0;
-            break;
-        case 2:
-            mf->buf[1] = data;
-            mf->phase++;
-            return 0;
-            break;
-        case 3:
-            mf->buf[2] = data;
-            mf->phase = 1;
-            /* データの解釈 */
-            mf->btn = mf->buf[0] & 0x07;
-            mf->x = mf->buf[1];
-            mf->y = mf->buf[2];
-            if ((mf->buf[0] & 0x10) != 0) {
-                mf->x |= 0xffffff00;
-            }
-            if ((mf->buf[0] & 0x20) != 0) {
-                mf->y |= 0xffffff00;
-            }
-            mf->y = - mf->y; /* マウスではy方向の符号が画面と反対 */
-            return 1;
-            break;
-    }
-    return -1;
 }

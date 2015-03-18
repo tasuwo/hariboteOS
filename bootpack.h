@@ -116,3 +116,29 @@ void inthandler2c(int *esp);
 #define PIC1_ICW2       0x00a1
 #define PIC1_ICW3       0x00a1
 #define PIC1_ICW4       0x00a1
+
+
+/************************ keyboard.c **************************/
+void wait_KBC_sendready(void);
+void init_keyboard(void);
+void inthandler21(int *esp);
+#define PORT_KEYDAT             0x0060  // モード設定のための装置番号
+#define PORT_KEYCMD             0x0064  // モード設定通知のための装置番号
+#define PORT_KEYSTA             0x0064  // KBCのコマンド受付可否判断のための装置番号
+#define KEYSTA_SEND_NOTREADY    0x02    // 下位2bitが0であるか判断(KBCのコマンド受付可否判定)
+#define KEYCMD_WRITE_MODE       0x60    // モード設定のためのコマンド
+#define KBC_MODE                0x47    // マウスを利用するモードにするコマンド
+extern struct FIFO8 keyfifo;
+
+
+/*********************** mouse.c ******************************/
+struct MOUSEINFO {
+    unsigned char buf[3], phase;
+    int x, y, btn;
+};
+void inthandler2c(int *esp);
+void enable_mouse(struct MOUSEINFO *mf);
+int mouse_decode(struct MOUSEINFO *mf, unsigned char data);
+#define KEYCMD_SENDTO_MOUSE     0xd4    // マウスへの命令送信
+#define MOUSECMD_ENABLE         0xf4    // マウスへの有効化命令
+extern struct FIFO8 mousefifo;

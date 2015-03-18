@@ -37,47 +37,6 @@ void init_pic(void)
     return;
 }
 
-#define PORT_KEYDAT     0x0060
-struct FIFO8 keyfifo;
-
-/**
- * キボード用の割込みハンドラ
- * @param esp ？？？
- */
-void inthandler21(int *esp){
-    unsigned char data;
-
-    /* 受付終了をPICに通知する */
-    io_out8(PIC0_OCW2, 0x61);
-    /* キーコードを取得する */
-    data = io_in8(PORT_KEYDAT);
-    /* データをキューに格納する */
-    fifo8_queue(&keyfifo, data);
-
-    return;
-}
-
-struct FIFO8 mousefifo;
-
-/**
- * マウス用の割込みハンドラ
- * @param esp ？？？
- */
-void inthandler2c(int *esp){
-    unsigned char data;
-
-    /* スレーブ(PIC1)側に受付終了を通知する */
-    io_out8(PIC1_OCW2, 0x64);
-    /* マスタ(PIC0)側に受付終了を通知する */
-    io_out8(PIC0_OCW2, 0x62);
-    /* データをを取得する */
-    data = io_in8(PORT_KEYDAT);
-    /* データをキューに格納する */
-    fifo8_queue(&mousefifo, data);
-
-    return;
-}
-
 void inthandler27(int *esp)
 /* PIC0からの不完全割り込み対策 */
 /* Athlon64X2機などではチップセットの都合によりPICの初期化時にこの割り込みが1度だけおこる */
