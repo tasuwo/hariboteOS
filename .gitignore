@@ -1,0 +1,7 @@
+*.bin
+*.lst
+*.obj
+bootpack.map
+bootpack.bim
+bootpack.hrb
+haribote.sys
