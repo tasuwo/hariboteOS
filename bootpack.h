@@ -22,6 +22,8 @@ int io_load_eflags(void);
 void io_store_eflags(int eflags);
 void load_gdtr(int limit, int addr);
 void load_idtr(int limit, int addr);
+int load_cr0(void);
+void store_cr0(int cr0);
 void asm_inthandler21(void);
 void asm_inthandler27(void);
 void asm_inthandler2c(void);
@@ -142,3 +144,10 @@ int mouse_decode(struct MOUSEINFO *mf, unsigned char data);
 #define KEYCMD_SENDTO_MOUSE     0xd4    // マウスへの命令送信
 #define MOUSECMD_ENABLE         0xf4    // マウスへの有効化命令
 extern struct FIFO8 mousefifo;
+
+
+/*********************** memory.c ******************************/
+#define EFLAGS_AC_BIT       0x00040000    // EFLAGSのACフラグ確認用
+#define CR0_CACHE_DIABLE    0x60000000    // キャッシュモードのON/OFF用
+unsigned int memtest(unsigned int start, unsigned int end);
+unsigned int memtest_sub(unsigned int start, unsigned int end);

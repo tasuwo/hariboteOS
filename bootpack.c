@@ -13,7 +13,7 @@ void HariMain(void)
     struct BOOTINFO *binfo = (struct BOOTINFO *) ADR_BOOTINFO;
     struct MOUSEINFO minfo;
     char s[40], mcursor[256], keybuf[32], mousebuf[128];
-    int mx, my, key;
+    int mx, my, key, i;
 
     /* 初期化処理 */
     init_gdtidt();                                          // GDT，IDT初期化
@@ -23,10 +23,12 @@ void HariMain(void)
     fifo8_init(&mousefifo, 32, mousebuf);                   // マウス用バッファ初期化
     io_out8(PIC0_IMR, 0xf9);                                // 割り込み許可：キーボードとPIC1(11111001)
     io_out8(PIC1_IMR, 0xef);                                // 割り込み許可：マウス(11101111)
+
     init_keyboard();                                        // KBCの初期化(マウス使用モードに設定)
+    enable_mouse(&minfo);                                   // マウス有効化
+
     init_palette();                                         // パレット初期化
     init_screen8(binfo->vram, binfo->scrnx, binfo->scrny);  // OS初期画面描画
-    enable_mouse(&minfo);                                   // マウス有効化
 
     /* マウスカーソルの描画 */
     mx = (binfo->scrnx - 16) / 2;                                           // 座標計算(画面中央)
@@ -35,6 +37,11 @@ void HariMain(void)
     putblock8_8(binfo->vram, binfo->scrnx, 16, 16, mx, my, mcursor, 16);    // mcursorを描画
     sprintf(s, "(%d, %d)", mx, my);                                         // 座標をメモリに書き込む
     putfonts8_asc(binfo->vram, binfo->scrnx, 0, 0, COL8_FFFFFF, s);         // 座標の描画
+
+    /* メモリチェック */
+    i = memtest(0x00400000, 0xbfffffff) / (1024 * 1024);
+    sprintf(s, "memory %dMB", i);
+    putfonts8_asc(binfo->vram, binfo->scrnx, 0, 32, COL8_FFFFFF, s);
 
     /* CPU休止 */
     while(1){
