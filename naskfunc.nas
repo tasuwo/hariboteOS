@@ -22,6 +22,7 @@
     GLOBAL  _io_load_eflags, _io_store_eflags
     GLOBAL  _load_gdtr, _load_idtr
     GLOBAL  _load_cr0, _store_cr0
+    GLOBAL  _memtest_sub
     GLOBAL  _asm_inthandler21, _asm_inthandler27, _asm_inthandler2c
     EXTERN  _inthandler21, _inthandler27, _inthandler2c
 
@@ -156,6 +157,43 @@ _store_cr0:
         MOV    EAX,[ESP+4]
         MOV    CR0,EAX
         RET
+
+;;; start番地からend番地までの範囲で，使えるメモリがどれだけあるか調べる
+;;; メモリに適当な値を書いた直後に，書かれた値を読み込む
+;;; 読み込んだ値と書き込んだ値が等しければメモリが繋がっているが，等しくなかった場合はでたらめな値になっている
+_memtest_sub:
+    ;; EDI,ESI,EBXを使う
+    PUSH    EDI
+    PUSH    ESI
+    PUSH    EBX
+    MOV     ESI,0xaa55aa55          ; pat0 = 0xaa55aa55;
+    MOV     EDI,0x55aa55aa          ; pat1 = 0x55aa55aa;
+    MOV     EAX,[ESP+12+4]          ; i = start;
+mts_loop:
+    MOV     EBX,EAX                 ; iの値取得
+    ADD     EBX,0xffc               ; p = i + 0xffc;
+    MOV     EDX,[EBX]               ; old = *p;
+    MOV     [EBX],ESI               ; *p = pat0;
+    XOR     DWORD [EBX],0xffffffff  ; *p ^= 0xffffffff;
+    CMP     EDI,[EBX]               ; if (*p != pat1) goto fin;
+    JNE     mts_fin
+    XOR     DWORD [EBX],0xffffffff  ; *p ^= 0xffffffff;
+    CMP     ESI,[EBX]               ; if (*p != pat0) goto gin;
+    JNE     mts_fin
+    MOV     [EBX],EDX               ; *p = old;
+    ADD     EAX,0x1000              ; i += 0x1000;
+    CMP     EAX,[ESP+12+8]          ; if (i <= end) goto mts_loop
+    JBE     mts_loop
+    POP     EBX
+    POP     ESI
+    POP     EDI
+    RET
+mts_fin:
+    MOV     [EBX],EDX               ; *p = old;
+    POP     EBX
+    POP     ESI
+    POP     EDI
+    RET
 
 _asm_inthandler21:
         PUSH    ES              ;

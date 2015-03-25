@@ -48,32 +48,3 @@ unsigned int memtest(unsigned int start, unsigned int end){
 
     return i;
 }
-
-/**
- * start番地からend番地までの範囲で，使えるメモリがどれだけあるか調べる
- * メモリに適当な値を書いた直後に，書かれた値を読み込む
- * 読み込んだ値と書き込んだ値が等しければメモリが繋がっているが，等しくなかった場合はでたらめな値になっている
- */
-unsigned int memtest_sub(unsigned int start, unsigned int end){
-    unsigned int pat0 = 0xaa55aa55, pat1 = 0x55aa55aa;    // パターンマッチ用
-    unsigned int i, *p, old;
-
-    // 0x1000(4KB)ずつチェック
-    for (i = start; i <= end; i += 0x1000){
-        p = (unsigned int *) (i + 0xffc);    // 末尾4byteをチェック
-        old = *p;           // 前の値を記録する
-        *p = pat0;          // パターン0を書き込む
-        *p ^= 0xffffffff;   // 反転する
-        if (*p != pat1) {   // パターン1(パターン0の反転)と等しいか？
-not_memory:
-            *p = old;       // 等しくなければbreak
-            break;
-        }
-        *p ^= 0xffffffff;   // もう一度反転して，等しいか調べる
-        if (*p != pat0){
-            goto not_memory;// 等しくなければbreak
-        }
-        *p = old;           // 前の値に戻す
-    }
-    return i;
-}
