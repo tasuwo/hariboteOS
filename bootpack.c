@@ -14,6 +14,8 @@ void HariMain(void)
     struct MOUSEINFO minfo;
     char s[40], mcursor[256], keybuf[32], mousebuf[128];
     int mx, my, key, i;
+    unsigned int memtotal;
+    struct MEMMANAGE *memman = (struct MEMMANAGE *) MEMMANAGE_ADDR;
 
     /* 初期化処理 */
     init_gdtidt();                                          // GDT，IDT初期化
@@ -39,8 +41,11 @@ void HariMain(void)
     putfonts8_asc(binfo->vram, binfo->scrnx, 0, 0, COL8_FFFFFF, s);         // 座標の描画
 
     /* メモリチェック */
-    i = memtest(0x00400000, 0xbfffffff) / (1024 * 1024);
-    sprintf(s, "memory %dMB", i);
+    memtotal = memtest(0x00400000, 0xbfffffff);
+    memman_init(memman);
+    memman_free(memman, 0x00001000, 0x0009e000);
+    memman_free(memman, 0x00400000, memtotal - 0x00400000);
+    sprintf(s, "memory %dMB  free : %dKB", memtotal / (1024 * 1024), memman_total(memman) / 1024);
     putfonts8_asc(binfo->vram, binfo->scrnx, 0, 32, COL8_FFFFFF, s);
 
     /* CPU休止 */

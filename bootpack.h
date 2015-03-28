@@ -150,4 +150,17 @@ extern struct FIFO8 mousefifo;
 /*********************** memory.c ******************************/
 #define EFLAGS_AC_BIT       0x00040000    // EFLAGSのACフラグ確認用
 #define CR0_CACHE_DIABLE    0x60000000    // キャッシュモードのON/OFF用
+#define MEMMANAGE_FREES     4090          // 空き情報：約32KB
+#define MEMMANAGE_ADDR      0x003c0000
+struct FREEINFO {                         // メモリの空き情報
+    unsigned int addr, size;
+};
+struct MEMMANAGE {                        // メモリ管理用
+    int frees, maxfrees, lostsize, losts;
+    struct FREEINFO free[MEMMANAGE_FREES];
+};
 unsigned int memtest(unsigned int start, unsigned int end);
+void memman_init(struct MEMMANAGE *man);
+unsigned int memman_total(struct MEMMANAGE *man);
+unsigned int memman_alloc(struct MEMMANAGE *man, unsigned int size);
+int memman_free(struct MEMMANAGE *man, unsigned int addr, unsigned int size);
