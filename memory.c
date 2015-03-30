@@ -6,14 +6,14 @@
 #include "bootpack.h"
 
 /**
- * テスト
- * @param {} start
- * @param {} end
- * @returns {} 
+ * メモリチェックを行う
+ * @param   {unsigned int} start      調べるメモリ番地の最初
+ * @param   {unsigned int} end        調べるメモリ番地の最後
+ * @returns {unsigned int} enable_mem 使用可能なメモリ
  */
 unsigned int memtest(unsigned int start, unsigned int end){
     char flg486 = 0;            // 486以降のCPUであるかどうかのフラグ
-    unsigned int eflg, cr0, i;
+    unsigned int eflg, cr0, enable_mem;
 
     /**
      * 386か，486以降かの確認
@@ -41,7 +41,7 @@ unsigned int memtest(unsigned int start, unsigned int end){
     /**
      * メモリチェック作業本体
      */
-    i = memtest_sub(start, end);
+    enable_mem = memtest_sub(start, end);
 
     /**
      * キャッシュ機能を許可する
@@ -52,9 +52,8 @@ unsigned int memtest(unsigned int start, unsigned int end){
         store_cr0(cr0);          // CR0レジスタセット
     }
 
-    return i;
+    return enable_mem;
 }
-
 
 
 /**
@@ -69,9 +68,8 @@ void memman_init(struct MEMMANAGE *man){
 }
 
 
-
 /**
- * メモリの空きサイズの合計
+ * メモリの空き情報のサイズの合計
  * @param   {struct MEMMANAGE} man    メモリ管理用の構造体
  * @returns {int}              total  メモリの空きサイズの合計
  */
@@ -82,6 +80,7 @@ unsigned int memman_total(struct MEMMANAGE *man){
     }
     return total;
 }
+
 
 /**
  * メモリ確保
@@ -177,4 +176,33 @@ int memman_free(struct MEMMANAGE *man, unsigned int addr, unsigned int size){
     man->losts++;
     man->lostsize += size;
     return -1;
+}
+
+
+/**
+ * 4KB 単位でメモリ領域の確保
+ * @param   {struct MEMANAGE} man    メモリ管理用の構造体
+ * @param   {unsigned int}    size   確保するメモリサイズ(4KB単位に切り上げされる)
+ * @returns {unsigned int}    addr   確保したメモリのアドレス
+ */
+unsigned int memman_alloc_4k(struct MEMMANAGE *man, unsigned int size){
+    unsigned int addr;
+    size = (size + 0xfff) & 0xfffff000;    // 0x1000 byte(4KB) 単位で切り捨て
+    addr = memman_alloc(man, size);
+    return addr;
+}
+
+
+/**
+ * 4KB 単位でメモリ領域の解放
+ * @param   {struct MEMMANAGE} man    メモリ管理用の構造体
+ * @param   {unsigned int}     addr   解放するメモリのアドレス
+ * @param   {unsigned int}     size   解放するメモリのサイズ
+ * @returns {int}              result 成功/失敗：0/-1
+ */
+int memman_free_4k(struct MEMMANAGE *man, unsigned int addr, unsigned int size){
+    int result;
+    size = (size + 0xfff) & 0xfffff000;
+    result = memman_free(man, addr, size);
+    return result;
 }

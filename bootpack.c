@@ -13,7 +13,7 @@ void HariMain(void)
     struct BOOTINFO *binfo = (struct BOOTINFO *) ADR_BOOTINFO;
     struct MOUSEINFO minfo;
     char s[40], mcursor[256], keybuf[32], mousebuf[128];
-    int mx, my, key, i;
+    int mx, my, key;
     unsigned int memtotal;
     struct MEMMANAGE *memman = (struct MEMMANAGE *) MEMMANAGE_ADDR;
 
@@ -31,6 +31,7 @@ void HariMain(void)
 
     init_palette();                                         // パレット初期化
     init_screen8(binfo->vram, binfo->scrnx, binfo->scrny);  // OS初期画面描画
+    memman_init(memman);                                    // メモリ管理用の構造体初期化
 
     /* マウスカーソルの描画 */
     mx = (binfo->scrnx - 16) / 2;                                           // 座標計算(画面中央)
@@ -40,11 +41,17 @@ void HariMain(void)
     sprintf(s, "(%d, %d)", mx, my);                                         // 座標をメモリに書き込む
     putfonts8_asc(binfo->vram, binfo->scrnx, 0, 0, COL8_FFFFFF, s);         // 座標の描画
 
-    /* メモリチェック */
-    memtotal = memtest(0x00400000, 0xbfffffff);
-    memman_init(memman);
-    memman_free(memman, 0x00001000, 0x0009e000);
-    memman_free(memman, 0x00400000, memtotal - 0x00400000);
+    /**
+     * メモリの解放を行う
+     * 0x00001000 ～ 0x0009e000 は？？？
+     * 0x00000000 ～ 0x00400000 は，起動中やフロッピーディスクの内容記録，IDTやGDT等に使用されている
+     * そのため，0x00400000 以降を解放する
+     */
+    memtotal = memtest(0x00400000, 0xbfffffff);             // 使用可能なメモリをチェックする
+    memman_free(memman, 0x00001000, 0x0009e000);            // ？？？
+    memman_free(memman, 0x00400000, memtotal - 0x00400000); // 0x00400000以降のメモリを解放
+
+    /* 文字列描画  */
     sprintf(s, "memory %dMB  free : %dKB", memtotal / (1024 * 1024), memman_total(memman) / 1024);
     putfonts8_asc(binfo->vram, binfo->scrnx, 0, 32, COL8_FFFFFF, s);
 
