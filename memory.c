@@ -5,6 +5,12 @@
 
 #include "bootpack.h"
 
+/**
+ * テスト
+ * @param {} start
+ * @param {} end
+ * @returns {} 
+ */
 unsigned int memtest(unsigned int start, unsigned int end){
     char flg486 = 0;            // 486以降のCPUであるかどうかのフラグ
     unsigned int eflg, cr0, i;
@@ -50,6 +56,11 @@ unsigned int memtest(unsigned int start, unsigned int end){
 }
 
 
+
+/**
+ * メモリ管理用の構造体の初期化
+ * @param {struct MEMMANAGE} man メモリ管理用の構造体
+ */
 void memman_init(struct MEMMANAGE *man){
     man->frees = 0;    // 空き情報の個数
     man->maxfrees = 0; // freeの最大値
@@ -57,14 +68,27 @@ void memman_init(struct MEMMANAGE *man){
     man->losts = 0;    // 解放に失敗した回数
 }
 
+
+
+/**
+ * メモリの空きサイズの合計
+ * @param   {struct MEMMANAGE} man    メモリ管理用の構造体
+ * @returns {int}              total  メモリの空きサイズの合計
+ */
 unsigned int memman_total(struct MEMMANAGE *man){
-    unsigned int i, t = 0;
+    unsigned int i, total = 0;
     for (i = 0; i < man->frees; i++){
-        t += man->free[i].size;        // メモリの空きサイズの合計を計算
+        total += man->free[i].size;        // メモリの空きサイズの合計を計算
     }
-    return t;
+    return total;
 }
 
+/**
+ * メモリ確保
+ * @param   {struct MEMMANAGE} man    メモリ管理用の構造体
+ * @param   {unsigned int}     size   確保するメモリサイズ
+ * @returns {unsigned int}     addr   確保したメモリのアドレス
+ */
 unsigned int memman_alloc(struct MEMMANAGE *man, unsigned int size){
     unsigned int i, addr;
     for (i = 0; i < man->frees; i++){
@@ -85,6 +109,14 @@ unsigned int memman_alloc(struct MEMMANAGE *man, unsigned int size){
     }
 }
 
+
+/**
+ * メモリ解放
+ * @param   {struct MEMMANAGE} man    メモリ管理用の構造体
+ * @param   {unsigned int}     addr   解放するメモリのアドレス
+ * @param   {unsigned int}     size   解放するメモリのサイズ
+ * @returns {int}                     成功/失敗：0/-1
+ */
 int memman_free(struct MEMMANAGE *man, unsigned int addr, unsigned int size){
     int i,j;
 
