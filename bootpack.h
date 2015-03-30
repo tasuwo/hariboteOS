@@ -164,3 +164,34 @@ void memman_init(struct MEMMANAGE *man);
 unsigned int memman_total(struct MEMMANAGE *man);
 unsigned int memman_alloc(struct MEMMANAGE *man, unsigned int size);
 int memman_free(struct MEMMANAGE *man, unsigned int addr, unsigned int size);
+unsigned int memman_alloc_4k(struct MEMMANAGE *man, unsigned int size);
+int memman_free_4k(struct MEMMANAGE *man, unsigned int addr, unsigned int size);
+
+
+/*********************** layer.c ******************************/
+#define MAX_LAYERS    256
+// レイヤ情報のフラグ用
+#define LAYER_USE        1
+#define LAYER_UNUSED     0
+struct LAYER {
+    unsigned char *buf;    // レイヤー内容を保持するバッファ
+    int bxsize, bysize;    // レイヤーサイズ
+    int vx0, vy0;          // 画面上のレイヤーの座標
+    int col_inv;           // 透明色番号
+    int height;            // 優先度
+    int flags;             // 設定
+};
+struct LYRCTL {
+    unsigned char *vram;               // VRAMのアドレス
+    int xsize, ysize;                  // 画面サイズ
+    int top;                           // 優先度
+    struct LAYER *layers[MAX_LAYERS];  // レイヤ情報(優先度順)
+    struct LAYER layers0[MAX_LAYERS];  // レイヤ情報(順不同)
+};
+struct LYRCTL *lyrctl_init(struct MEMMANAGE *memman, unsigned char *vram, int xsize,int ysize);
+void layer_setbuf(struct LAYER *lyr, unsigned char *buf, int xsize, int ysize, int col_inv);
+struct LAYER *layer_alloc(struct LYRCTL *ctl);
+void layer_updown(struct LYRCTL *ctl, struct LAYER *lyr, int height);
+void layer_refresh(struct LYRCTL *ctl);
+void layer_slide(struct LYRCTL *ctl, struct LAYER *lyr, int vx0, int vy0);
+void layer_free(struct LYRCTL *ctl, struct LAYER *lyr);
