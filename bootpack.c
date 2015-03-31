@@ -25,54 +25,57 @@ void HariMain(void)
     init_pic();                                             // PIC初期化
     io_sti();                                               // 割り込み禁止を解除
     fifo8_init(&keyfifo, 32, keybuf);                       // キーボード用バッファ初期化
-    fifo8_init(&mousefifo, 128, mousebuf);                   // マウス用バッファ初期化
+    fifo8_init(&mousefifo, 128, mousebuf);                  // マウス用バッファ初期化
     io_out8(PIC0_IMR, 0xf9);                                // 割り込み許可：キーボードとPIC1(11111001)
     io_out8(PIC1_IMR, 0xef);                                // 割り込み許可：マウス(11101111)
 
     init_keyboard();                                        // KBCの初期化(マウス使用モードに設定)
     enable_mouse(&minfo);                                   // マウス有効化
+
     memtotal = memtest(0x00400000, 0xbfffffff);             // 使用可能なメモリをチェックする
     memman_init(memman);                                    // メモリ管理用の構造体初期化
-    /**
-     * メモリの解放を行う
-     * 0x00001000 ～ 0x0009e000 は？？？
-     * 0x00000000 ～ 0x00400000 は，起動中やフロッピーディスクの内容記録，IDTやGDT等に使用されている
-     * そのため，0x00400000 以降を解放する
-     */
     memman_free(memman, 0x00001000, 0x0009e000);            // ？？？
     memman_free(memman, 0x00400000, memtotal - 0x00400000); // 0x00400000以降のメモリを解放
 
-    /* 画面描画のための初期化処理 */
-    init_palette();                                         // パレット初期化
-    lyrctl = lyrctl_init(memman, binfo->vram, binfo->scrnx, binfo->scrny);
-    /* メモリ確保  */
-    lyr_back = layer_alloc(lyrctl);
-    lyr_mouse = layer_alloc(lyrctl);
-    buf_back = (unsigned char *) memman_alloc_4k(memman, binfo->scrnx * binfo->scrny);
-    layer_setbuf(lyr_back, buf_back, binfo->scrnx, binfo->scrny, -1);
-    layer_setbuf(lyr_mouse, buf_mouse, 16, 16, 99);
-    /**/
-    init_screen8(buf_back, binfo->scrnx, binfo->scrny);  // OS初期画面描画
-    init_mouse_cursor8(buf_mouse, 99);               // mcursorにマウスを初期化
-    /**/
-    layer_slide(lyrctl, lyr_back, 0, 0);
-    mx = (binfo->scrnx - 16) / 2; 
-    my = (binfo->scrny - 28 - 16) / 2;
-    /**/
-    layer_slide(lyrctl, lyr_mouse, mx, my);
-    /**/
-    layer_updown(lyrctl, lyr_back, 0);
-    layer_updown(lyrctl, lyr_mouse, 1);
-    /* 座標描画 */
-    sprintf(s, "(%3d, %3d)", mx, my);                                         // 座標をメモリに書き込む
-    putfonts8_asc(buf_back, binfo->scrnx, 0, 0, COL8_FFFFFF, s);       // 座標の描画
-    /* 容量描画 */
-    sprintf(s, "memory %dMB  free : %dKB",
-            memtotal / (1024 * 1024), memman_total(memman) / 1024);
-    putfonts8_asc(buf_back, binfo->scrnx, 0, 32, COL8_FFFFFF, s);
+    /* 描画のための初期化処理 */
+    init_palette();                                                         // パレット初期化
+    lyrctl = lyrctl_init(memman, binfo->vram, binfo->scrnx, binfo->scrny);  // レイヤ制御用の構造体初期化
 
-    /* 描画 */
+    /* メモリ確保 */
+    // 各レイヤ
+    lyr_back  = layer_alloc(lyrctl);
+    lyr_mouse = layer_alloc(lyrctl);
+    // 各レイヤのバッファ(マウスは256固定)
+    buf_back  = (unsigned char *) memman_alloc_4k(memman, binfo->scrnx * binfo->scrny);
+
+    /* レイヤ設定 */
+    // レイヤ制御構造体とのバインディング
+    layer_setbuf(lyr_back,  buf_back,  binfo->scrnx, binfo->scrny, -1);
+    layer_setbuf(lyr_mouse, buf_mouse, 16, 16, 99);
+    // バッファを初期化
+    init_screen8(buf_back, binfo->scrnx, binfo->scrny);  // OS初期画面
+    init_mouse_cursor8(buf_mouse, 99);                   // マウス
+    // 優先度を設定
+    layer_updown(lyrctl, lyr_back,  0);
+    layer_updown(lyrctl, lyr_mouse, 1);
+
+    /******************************** 描画 ***********************************/
+    /*** マウスレイヤ ***/
+    mx = (binfo->scrnx - 16) / 2;
+    my = (binfo->scrny - 28 - 16) / 2;
+    layer_slide(lyrctl, lyr_mouse, mx, my);                            // マウス描画位置
+    /*** 背景レイヤ ***/
+    layer_slide(lyrctl, lyr_back, 0, 0);                               // 背景描画位置
+    // マウスカーソルの座標
+    sprintf(s, "(%3d, %3d)", mx, my);                                  // メモリに書き込み
+    putfonts8_asc(buf_back, binfo->scrnx, 0, 0, COL8_FFFFFF, s);       // バッファに格納
+    // メモリ容量，メモリ空き状態
+    sprintf(s, "memory %dMB  free : %dKB",
+            memtotal / (1024 * 1024), memman_total(memman) / 1024);    // メモリに書き込み
+    putfonts8_asc(buf_back, binfo->scrnx, 0, 32, COL8_FFFFFF, s);      // バッファに格納
+    /*** 各レイヤの描画 ***/
     layer_refresh(lyrctl);
+    /*************************************************************************/
 
     /* CPU休止 */
     while(1){

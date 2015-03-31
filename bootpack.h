@@ -169,18 +169,20 @@ int memman_free_4k(struct MEMMANAGE *man, unsigned int addr, unsigned int size);
 
 
 /*********************** layer.c ******************************/
-#define MAX_LAYERS    256
+#define MAX_LAYERS    256    // 使用するレイヤの上限
 // レイヤ情報のフラグ用
 #define LAYER_USE        1
 #define LAYER_UNUSED     0
+// レイヤ情報
 struct LAYER {
     unsigned char *buf;    // レイヤー内容を保持するバッファ
     int bxsize, bysize;    // レイヤーサイズ
     int vx0, vy0;          // 画面上のレイヤーの座標
     int col_inv;           // 透明色番号
     int height;            // 優先度
-    int flags;             // 設定
+    int flags;             // 使用中のフラグ
 };
+// レイヤ制御
 struct LYRCTL {
     unsigned char *vram;               // VRAMのアドレス
     int xsize, ysize;                  // 画面サイズ

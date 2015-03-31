@@ -71,7 +71,7 @@ void boxfill8(unsigned char *vram, int xsize, unsigned char c, int x_org, int y_
 
 
 /**
- * 描画の初期化
+ * 描画用バッファの初期化
  * @param vram vramの戦闘ポインタ
  * @param x    x幅
  * @param y    y幅
@@ -148,7 +148,7 @@ void putfonts8_asc(char *vram, int xsize, int x, int y, char c, unsigned char *s
 
 
 /**
- * マウスカーソルの初期描画
+ * マウスカーソル描画用のバッファ初期化
  * @param mouse マウスの先頭ポインタ
  * @param bc    背景カラー
  */
