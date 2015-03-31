@@ -13,7 +13,7 @@ struct BOOTINFO {
 
 /*********************** naskfunc.nas ***********************/
 void io_hlt(void);
-void io_cli(void);
+ void io_cli(void);
 void io_sti(void);
 void io_stihlt(void);
 void io_out8(int port, int data);
@@ -194,6 +194,7 @@ struct LYRCTL *lyrctl_init(struct MEMMANAGE *memman, unsigned char *vram, int xs
 void layer_setbuf(struct LAYER *lyr, unsigned char *buf, int xsize, int ysize, int col_inv);
 struct LAYER *layer_alloc(struct LYRCTL *ctl);
 void layer_updown(struct LYRCTL *ctl, struct LAYER *lyr, int height);
-void layer_refresh(struct LYRCTL *ctl);
+void layer_refresh(struct LYRCTL *ctl, struct LAYER *lyr, int x_str, int y_str, int x_end, int y_end);
+void layer_refreshsub(struct LYRCTL *ctl, int x_str, int y_str, int x_end, int y_end);
 void layer_slide(struct LYRCTL *ctl, struct LAYER *lyr, int vx0, int vy0);
 void layer_free(struct LYRCTL *ctl, struct LAYER *lyr);

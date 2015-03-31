@@ -136,17 +136,37 @@ void layer_updown(struct LYRCTL *ctl, struct LAYER *lyr, int height){
     }
 
     // 再描画
-    layer_refresh(ctl);
+    layer_refreshsub(ctl, lyr->vx0, lyr->vy0, lyr->vx0 + lyr->bxsize, lyr->vy0 + lyr->bysize);
 
     return;
 }
 
 
 /**
- * レイヤの描画を更新
+ * 指定範囲内を再描画(レイヤ上の座標)
  * @param {struct LYRCTL} ctl    レイヤ情報制御のための構造体
+ * @param {struct LAYER}  lyr    範囲指定を行うレイヤ
+ * @param {int}           x_str  描画範囲(X座標始点)
+ * @param {int}           y_str  描画範囲(Y座標始点)
+ * @param {int}           x_end  描画範囲(X座標終点)
+ * @param {int}           y_end  描画範囲(Y座標終点)
  */
-void layer_refresh(struct LYRCTL *ctl){
+void layer_refresh(struct LYRCTL *ctl, struct LAYER *lyr, int x_str, int y_str, int x_end, int y_end){
+    if (lyr->height != -1){
+        layer_refreshsub(ctl, lyr->vx0 + x_str, lyr->vy0 + y_str, lyr->vx0 + x_end, lyr->vy0 + y_end);
+    }
+}
+
+
+/**
+ * 指定範囲内を再描画(画面上の座標)
+ * @param {struct LYRCTL} ctl    レイヤ情報制御のための構造体
+ * @param {int}           x_str  描画範囲(X座標始点)
+ * @param {int}           y_str  描画範囲(Y座標始点)
+ * @param {int}           x_end  描画範囲(X座標終点)
+ * @param {int}           y_end  描画範囲(Y座標終点)
+ */
+void layer_refreshsub(struct LYRCTL *ctl, int x_str, int y_str, int x_end, int y_end){
     int h;
     int bx, by;                        // 座標描画のためのループ用
     int vx, vy;                        // 画面上の座標
@@ -166,10 +186,13 @@ void layer_refresh(struct LYRCTL *ctl){
                 vx = lyr->vx0 + bx;  // 描画座標
 
                 /************************* 描画 ************************/
-                // 描画用バッファ
-                c = buf[by * lyr->bxsize + bx];
-                // 透明色でなければ描画
-                if(c != lyr->col_inv){ vram[vy * ctl->xsize + vx] = c; }
+                // 描画範囲内であるか？
+                if (x_str <= vx && vx < x_end && y_str <= vy && vy < y_end){
+                    // 描画用バッファ
+                    c = buf[by * lyr->bxsize + bx];
+                    // 透明色でなければ描画
+                    if(c != lyr->col_inv){ vram[vy * ctl->xsize + vx] = c; }
+                }
                 /*******************************************************/
             }
         }
@@ -186,11 +209,19 @@ void layer_refresh(struct LYRCTL *ctl){
  * @param {int}             vy0    画面上における移動先のY座標
  */
 void layer_slide(struct LYRCTL *ctl, struct LAYER *lyr, int vx0, int vy0){
-    // 移動先の座標を格納
+    // 移動前の座標を保持
+    int old_vx0 = lyr->vx0;
+    int old_vy0 = lyr->vy0;
+    // 移動後の座標を格納
     lyr->vx0 = vx0;
     lyr->vy0 = vy0;
     // 非表示状態でなければ，描画する
-    if (lyr->height != -1){ layer_refresh(ctl); }
+    if (lyr->height != -1){
+        // 移動前の範囲を再描画
+        layer_refreshsub(ctl, old_vx0, old_vy0, old_vx0 + lyr->bxsize, old_vy0 + lyr->bysize);
+        // 移動後の範囲を再描画
+        layer_refreshsub(ctl, vx0, vy0, vx0 + lyr->bxsize, vy0 + lyr->bysize);
+    }
     return;
 }
 
