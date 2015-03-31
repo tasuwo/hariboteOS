@@ -181,6 +181,7 @@ struct LAYER {
     int col_inv;           // 透明色番号
     int height;            // 優先度
     int flags;             // 使用中のフラグ
+    struct LYRCTL *ctl;    // レイヤ制御用の構造体
 };
 // レイヤ制御
 struct LYRCTL {
@@ -193,8 +194,8 @@ struct LYRCTL {
 struct LYRCTL *lyrctl_init(struct MEMMANAGE *memman, unsigned char *vram, int xsize,int ysize);
 void layer_setbuf(struct LAYER *lyr, unsigned char *buf, int xsize, int ysize, int col_inv);
 struct LAYER *layer_alloc(struct LYRCTL *ctl);
-void layer_updown(struct LYRCTL *ctl, struct LAYER *lyr, int height);
-void layer_refresh(struct LYRCTL *ctl, struct LAYER *lyr, int x_str, int y_str, int x_end, int y_end);
+void layer_updown(struct LAYER *lyr, int height);
+void layer_refresh(struct LAYER *lyr, int x_str, int y_str, int x_end, int y_end);
 void layer_refreshsub(struct LYRCTL *ctl, int x_str, int y_str, int x_end, int y_end);
-void layer_slide(struct LYRCTL *ctl, struct LAYER *lyr, int vx0, int vy0);
-void layer_free(struct LYRCTL *ctl, struct LAYER *lyr);
+void layer_slide(struct LAYER *lyr, int vx0, int vy0);
+void layer_free(struct LAYER *lyr);

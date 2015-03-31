@@ -27,7 +27,10 @@ struct LYRCTL *lyrctl_init(struct MEMMANAGE *memman, unsigned char *vram, int xs
     ctl->xsize = xsize;
     ctl->ysize = ysize;
     ctl->top   = -1;
-    for (i=0; i<MAX_LAYERS; i++){ ctl->layers0[i].flags = LAYER_UNUSED; }
+    for (i=0; i<MAX_LAYERS; i++){
+        ctl->layers0[i].flags = LAYER_UNUSED;    // フラグ格納
+        ctl->layers0[i].ctl = ctl;               // 所属記録
+    }
 
  err:
     return ctl;
@@ -80,7 +83,8 @@ struct LAYER *layer_alloc(struct LYRCTL *ctl){
  * @param {struct LAYER}  lyr       優先度を変更するレイヤ
  * @param {int height}    height    設定する優先度
  */
-void layer_updown(struct LYRCTL *ctl, struct LAYER *lyr, int height){
+void layer_updown(struct LAYER *lyr, int height){
+    struct LYRCTL *ctl = lyr->ctl;
     int h;                           // ループ用変数
     int old_height = lyr->height;    // 設定前の優先度
 
@@ -151,9 +155,9 @@ void layer_updown(struct LYRCTL *ctl, struct LAYER *lyr, int height){
  * @param {int}           x_end  描画範囲(X座標終点)
  * @param {int}           y_end  描画範囲(Y座標終点)
  */
-void layer_refresh(struct LYRCTL *ctl, struct LAYER *lyr, int x_str, int y_str, int x_end, int y_end){
+void layer_refresh(struct LAYER *lyr, int x_str, int y_str, int x_end, int y_end){
     if (lyr->height != -1){
-        layer_refreshsub(ctl, lyr->vx0 + x_str, lyr->vy0 + y_str, lyr->vx0 + x_end, lyr->vy0 + y_end);
+        layer_refreshsub(lyr->ctl, lyr->vx0 + x_str, lyr->vy0 + y_str, lyr->vx0 + x_end, lyr->vy0 + y_end);
     }
 }
 
@@ -228,7 +232,8 @@ void layer_refreshsub(struct LYRCTL *ctl, int x_str, int y_str, int x_end, int y
  * @param {int}             vx0    画面上における移動先のX座標
  * @param {int}             vy0    画面上における移動先のY座標
  */
-void layer_slide(struct LYRCTL *ctl, struct LAYER *lyr, int vx0, int vy0){
+void layer_slide(struct LAYER *lyr, int vx0, int vy0){
+    struct LYRCTL *ctl = lyr->ctl;
     // 移動前の座標を保持
     int old_vx0 = lyr->vx0;
     int old_vy0 = lyr->vy0;
@@ -251,9 +256,9 @@ void layer_slide(struct LYRCTL *ctl, struct LAYER *lyr, int vx0, int vy0){
  * @param {struct LYRCTL} ctl    非表示レイヤの制御情報を格納した構造体
  * @param {struct LAYRE}  lyr    非表示にするレイヤ
  */
-void layer_free(struct LYRCTL *ctl, struct LAYER *lyr){
+void layer_free(struct LAYER *lyr){
     // 非表示状態でなければ，非表示状態にする
-    if(lyr->height != -1){ layer_updown(ctl, lyr, -1); }
+    if(lyr->height != -1){ layer_updown(lyr, -1); }
     // レイヤを未使用状態にする
     lyr->flags = LAYER_UNUSED;
     return;

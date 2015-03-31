@@ -56,16 +56,16 @@ void HariMain(void)
     init_screen8(buf_back, binfo->scrnx, binfo->scrny);  // OS初期画面
     init_mouse_cursor8(buf_mouse, 99);                   // マウス
     // 優先度を設定
-    layer_updown(lyrctl, lyr_back,  0);
-    layer_updown(lyrctl, lyr_mouse, 1);
+    layer_updown(lyr_back,  0);
+    layer_updown(lyr_mouse, 1);
 
     /******************************** 描画 ***********************************/
     /*** マウスレイヤ ***/
     mx = (binfo->scrnx - 16) / 2;
     my = (binfo->scrny - 28 - 16) / 2;
-    layer_slide(lyrctl, lyr_mouse, mx, my);                            // マウス描画位置
+    layer_slide(lyr_mouse, mx, my);                            // マウス描画位置
     /*** 背景レイヤ ***/
-    layer_slide(lyrctl, lyr_back, 0, 0);                               // 背景描画位置
+    layer_slide(lyr_back, 0, 0);                               // 背景描画位置
     // マウスカーソルの座標
     sprintf(s, "(%3d, %3d)", mx, my);                                  // メモリに書き込み
     putfonts8_asc(buf_back, binfo->scrnx, 0, 0, COL8_FFFFFF, s);       // バッファに格納
@@ -74,7 +74,7 @@ void HariMain(void)
             memtotal / (1024 * 1024), memman_total(memman) / 1024);    // メモリに書き込み
     putfonts8_asc(buf_back, binfo->scrnx, 0, 32, COL8_FFFFFF, s);      // バッファに格納
     /*** 各レイヤの描画 ***/
-    layer_refresh(lyrctl, lyr_back, 0, 0, binfo->scrnx, 48);
+    layer_refresh(lyr_back, 0, 0, binfo->scrnx, 48);
     /*************************************************************************/
 
     /* CPU休止 */
@@ -97,7 +97,7 @@ void HariMain(void)
                 sprintf(s, "%02X", key);                                         // メモリに文字列を書き出す
                 boxfill8(buf_back, binfo->scrnx, COL8_008484, 0, 16, 15, 31);    // バッファのクリア
                 putfonts8_asc(buf_back, binfo->scrnx, 0, 16, COL8_FFFFFF, s);    // 文字をバッファに格納
-                layer_refresh(lyrctl, lyr_back, 0, 16, 16, 32);                  // 文字列の表示範囲の描画を更新
+                layer_refresh(lyr_back, 0, 16, 16, 32);                  // 文字列の表示範囲の描画を更新
             } else if (fifo8_status(&mousefifo) != 0) {
                 /* データの取得 */
                 key = fifo8_dequeue(&mousefifo);
@@ -119,7 +119,7 @@ void HariMain(void)
                     }
                     boxfill8(buf_back, binfo->scrnx, COL8_008484, 32, 16, 32 + 15 * 8 - 1, 31);    // バッファのクリア
                     putfonts8_asc(buf_back, binfo->scrnx, 32, 16, COL8_FFFFFF, s);                 // 文字をバッファに格納
-                    layer_refresh(lyrctl, lyr_back, 32, 16, 32 + 15 * 8, 32);                      // 文字列の表示範囲の描画を更新
+                    layer_refresh(lyr_back, 32, 16, 32 + 15 * 8, 32);                      // 文字列の表示範囲の描画を更新
                     /* マウスカーソルの移動 */
                     mx += minfo.x;
                     my += minfo.y;
@@ -138,8 +138,8 @@ void HariMain(void)
                     sprintf(s, "(%3d, %3d)", mx, my);                            // メモリに文字列を書き出す
                     boxfill8(buf_back, binfo->scrnx, COL8_008484, 0, 0, 79, 15); // 描画範囲のクリア
                     putfonts8_asc(buf_back, binfo->scrnx, 0, 0, COL8_FFFFFF, s); // 文字をバッファに格納
-                    layer_refresh(lyrctl, lyr_back, 0, 0, 80, 16);               // 描画範囲の表示更新
-                    layer_slide(lyrctl, lyr_mouse, mx, my);
+                    layer_refresh(lyr_back, 0, 0, 80, 16);               // 描画範囲の表示更新
+                    layer_slide(lyr_mouse, mx, my);
                 }
             }
         }
