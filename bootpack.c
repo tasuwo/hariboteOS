@@ -16,9 +16,9 @@ void HariMain(void)
     unsigned int memtotal;
     struct MOUSEINFO minfo;
     struct MEMMANAGE *memman = (struct MEMMANAGE *) MEMMANAGE_ADDR;
-    struct LYRCTL *lyrctl;
-    struct LAYER *lyr_back, *lyr_mouse;
-    unsigned char *buf_back, buf_mouse[256];
+    struct LYRCTL *lyrctl;                                            // レイヤ制御用の構造体
+    struct LAYER *lyr_back, *lyr_mouse, *lyr_win;                     // 各レイヤ
+    unsigned char *buf_back, buf_mouse[256], *buf_win;                // 各レイヤのバッファ
 
     /* 初期化処理 */
     init_gdtidt();                                          // GDT，IDT初期化
@@ -45,21 +45,30 @@ void HariMain(void)
     // 各レイヤ
     lyr_back  = layer_alloc(lyrctl);
     lyr_mouse = layer_alloc(lyrctl);
+    lyr_win   = layer_alloc(lyrctl);
     // 各レイヤのバッファ(マウスは256固定)
     buf_back  = (unsigned char *) memman_alloc_4k(memman, binfo->scrnx * binfo->scrny);
+    buf_win   = (unsigned char *) memman_alloc_4k(memman,160 * 68);
 
     /* レイヤ設定 */
     // レイヤ制御構造体とのバインディング
     layer_setbuf(lyr_back,  buf_back,  binfo->scrnx, binfo->scrny, -1);
-    layer_setbuf(lyr_mouse, buf_mouse, 16, 16, 99);
+    layer_setbuf(lyr_mouse, buf_mouse, 16,  16, 99);
+    layer_setbuf(lyr_win,   buf_win,   160, 68, -1);
     // バッファを初期化
     init_screen8(buf_back, binfo->scrnx, binfo->scrny);  // OS初期画面
     init_mouse_cursor8(buf_mouse, 99);                   // マウス
+    make_window8(buf_win, 160, 68, "window");            // ウインドウ
     // 優先度を設定
     layer_updown(lyr_back,  0);
-    layer_updown(lyr_mouse, 1);
+    layer_updown(lyr_mouse, 2);
+    layer_updown(lyr_win,   1);
 
     /******************************** 描画 ***********************************/
+    /*** ウインドウレイヤ ***/
+    putfonts8_asc(buf_win, 160, 24, 28, COL8_000000, "Welcome to");
+    putfonts8_asc(buf_win, 160, 24, 44, COL8_000000, "  Haribote-OS!");
+    layer_slide(lyr_win, 80, 72);
     /*** マウスレイヤ ***/
     mx = (binfo->scrnx - 16) / 2;
     my = (binfo->scrny - 28 - 16) / 2;
