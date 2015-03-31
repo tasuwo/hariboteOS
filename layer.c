@@ -181,6 +181,12 @@ void layer_refreshsub(struct LYRCTL *ctl, int x_str, int y_str, int x_end, int y
         lyr = ctl->layers[h];        // レイヤー情報取得
         buf = lyr->buf;              // レイヤー情報から描画情報取得
 
+        // 絶対座標である再描画範囲が画面外だったら補正
+        if (x_str < 0) { x_str = 0; }
+        if (y_str < 0) { y_str = 0; }
+        if (x_end > ctl->xsize) { x_end = ctl->xsize; }
+        if (y_end > ctl->ysize) { y_end = ctl->ysize; }
+
         // 再描画のためには，レイヤのバッファを書き換える必要がある
         // すなわち，レイヤ上の相対座標が情報として必要
         // ここで，画面上の絶対座標 = レイヤの絶対座標 + レイヤ上の相対座標
