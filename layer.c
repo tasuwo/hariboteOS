@@ -169,7 +169,8 @@ void layer_refresh(struct LYRCTL *ctl, struct LAYER *lyr, int x_str, int y_str, 
 void layer_refreshsub(struct LYRCTL *ctl, int x_str, int y_str, int x_end, int y_end){
     int h;
     int bx, by;                        // 座標描画のためのループ用
-    int vx, vy;                        // 画面上の座標
+    int bx0, bx1, by0, by1;            // レイヤ上の再描画範囲
+    int vx, vy;                        // 画面上の再描画範囲
     unsigned char *buf;                // レイヤー情報のバッファ
     unsigned char c;                   // 描画のためのバッファ格納用
     unsigned char *vram = ctl->vram;   // VRAMのアドレス
@@ -179,21 +180,34 @@ void layer_refreshsub(struct LYRCTL *ctl, int x_str, int y_str, int x_end, int y
     for (h = 0; h <= ctl->top; h++) {
         lyr = ctl->layers[h];        // レイヤー情報取得
         buf = lyr->buf;              // レイヤー情報から描画情報取得
+
+        // 再描画のためには，レイヤのバッファを書き換える必要がある
+        // すなわち，レイヤ上の相対座標が情報として必要
+        // ここで，画面上の絶対座標 = レイヤの絶対座標 + レイヤ上の相対座標
+        // vx = lyr->vx0 + bx
+        bx0 = x_str - lyr->vx0;
+        by0 = y_str - lyr->vy0;
+        bx1 = x_end - lyr->vx0;
+        by1 = y_end - lyr->vy0;
+
+        // 再描画は全てのレイヤについて行う．
+        // 指定した絶対座標が，再描画するレイヤの範囲内にない場合がある
+        // この時， bx0, ..., by1 がレイヤの範囲外を示してしまうため，これを修正する
+        if (bx0 < 0) { bx0 = 0; }
+        if (by0 < 0) { by0 = 0; }
+        if (bx1 > lyr->bxsize) { bx1 = lyr->bxsize; }
+        if (by1 > lyr->bysize) { by1 = lyr->bysize; }
+
         // レイヤーの描画のため，X，Y座標についてループ
-        for (by = 0; by < lyr->bysize; by++) {
+        for (by = by0; by < by1; by++) {
             vy = lyr->vy0 + by;      // 描画座標
-            for (bx = 0; bx < lyr->bxsize; bx++) {
+            for (bx = bx0; bx < bx1; bx++) {
                 vx = lyr->vx0 + bx;  // 描画座標
 
-                /************************* 描画 ************************/
-                // 描画範囲内であるか？
-                if (x_str <= vx && vx < x_end && y_str <= vy && vy < y_end){
-                    // 描画用バッファ
-                    c = buf[by * lyr->bxsize + bx];
-                    // 透明色でなければ描画
-                    if(c != lyr->col_inv){ vram[vy * ctl->xsize + vx] = c; }
-                }
-                /*******************************************************/
+                // 描画用バッファ
+                c = buf[by * lyr->bxsize + bx];
+                // 透明色でなければ描画
+                if(c != lyr->col_inv){ vram[vy * ctl->xsize + vx] = c; }
             }
         }
     }
