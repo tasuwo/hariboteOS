@@ -187,6 +187,7 @@ struct LAYER {
 // レイヤ制御
 struct LYRCTL {
     unsigned char *vram;               // VRAMのアドレス
+    unsigned char *map;                // マップ
     int xsize, ysize;                  // 画面サイズ
     int top;                           // 優先度
     struct LAYER *layers[MAX_LAYERS];  // レイヤ情報(優先度順)
@@ -197,6 +198,7 @@ void layer_setbuf(struct LAYER *lyr, unsigned char *buf, int xsize, int ysize, i
 struct LAYER *layer_alloc(struct LYRCTL *ctl);
 void layer_updown(struct LAYER *lyr, int height);
 void layer_refresh(struct LAYER *lyr, int x_str, int y_str, int x_end, int y_end);
-void layer_refreshsub(struct LYRCTL *ctl, int x_str, int y_str, int x_end, int y_end, int h0);
+void layer_refreshsub(struct LYRCTL *ctl, int x_str, int y_str, int x_end, int y_end, int h0, int h1);
 void layer_slide(struct LAYER *lyr, int vx0, int vy0);
 void layer_free(struct LAYER *lyr);
+void layer_refresh_map(struct LYRCTL *ctl, int vx0, int vy0, int vx1, int vy1, int h0);

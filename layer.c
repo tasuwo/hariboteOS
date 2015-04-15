@@ -23,6 +23,13 @@ struct LYRCTL *lyrctl_init(struct MEMMANAGE *memman, unsigned char *vram, int xs
     if (ctl == 0){ goto err; }
 
     // 構造体の初期化
+    // マップ初期化
+    // 画面上の点が，どのレイヤのものであるかを示す
+    ctl->map = (unsigned char *) memman_alloc_4k(memman, xsize * ysize);
+    if (ctl->map == 0){
+        memman_free_4k(memman, (int) ctl, sizeof(struct LYRCTL));
+        goto err;
+    }
     ctl->vram  = vram;
     ctl->xsize = xsize;
     ctl->ysize = ysize;
@@ -107,8 +114,10 @@ void layer_updown(struct LAYER *lyr, int height){
             }
             // レイヤの枚数を減らす
             ctl->top--;
+            // マップの更新
+            layer_refresh_map(ctl, lyr->vx0, lyr->vy0, lyr->vx0 + lyr->bxsize, lyr->vy0 + lyr->bysize, 0);
             // 再描画
-            layer_refreshsub(ctl, lyr->vx0, lyr->vy0, lyr->vx0 + lyr->bxsize, lyr->vy0 + lyr->bysize, 0);
+            layer_refreshsub(ctl, lyr->vx0, lyr->vy0, lyr->vx0 + lyr->bxsize, lyr->vy0 + lyr->bysize, 0, old_height - 1);
         } else {
             // 移動レイヤより上位のレイヤの優先度を下げる
             for (h = old_height; h > height; h--) {
@@ -117,8 +126,10 @@ void layer_updown(struct LAYER *lyr, int height){
             }
             // レイヤを移動する
             ctl->layers[height] = lyr;
+            // マップの更新
+            layer_refresh_map(ctl, lyr->vx0, lyr->vy0, lyr->vx0 + lyr->bxsize, lyr->vy0 + lyr->bysize, height + 1);
             // 再描画
-            layer_refreshsub(ctl, lyr->vx0, lyr->vy0, lyr->vx0 + lyr->bxsize, lyr->vy0 + lyr->bysize, lyr->height + 1);
+            layer_refreshsub(ctl, lyr->vx0, lyr->vy0, lyr->vx0 + lyr->bxsize, lyr->vy0 + lyr->bysize, height + 1, old_height);
         }
     } else if (old_height < height) {
         // レイヤの優先度が以前よりも高くなる
@@ -140,13 +151,11 @@ void layer_updown(struct LAYER *lyr, int height){
         }
         // レイヤを移動する
         ctl->layers[height] = lyr;
+        // マップの更新
+        layer_refresh_map(ctl, lyr->vx0, lyr->vy0, lyr->vx0 + lyr->bxsize, lyr->vy0 + lyr->bysize, height);
         // 再描画
-        layer_refreshsub(ctl, lyr->vx0, lyr->vy0, lyr->vx0 + lyr->bxsize, lyr->vy0 + lyr->bysize, lyr->height);
+        layer_refreshsub(ctl, lyr->vx0, lyr->vy0, lyr->vx0 + lyr->bxsize, lyr->vy0 + lyr->bysize, height, height);
     }
-
-    // 再描画
-    layer_refreshsub(ctl, lyr->vx0, lyr->vy0, lyr->vx0 + lyr->bxsize, lyr->vy0 + lyr->bysize, lyr->height);
-
     return;
 }
 
@@ -162,7 +171,7 @@ void layer_updown(struct LAYER *lyr, int height){
  */
 void layer_refresh(struct LAYER *lyr, int x_str, int y_str, int x_end, int y_end){
     if (lyr->height != -1){
-        layer_refreshsub(lyr->ctl, lyr->vx0 + x_str, lyr->vy0 + y_str, lyr->vx0 + x_end, lyr->vy0 + y_end, lyr->height);
+        layer_refreshsub(lyr->ctl, lyr->vx0 + x_str, lyr->vy0 + y_str, lyr->vx0 + x_end, lyr->vy0 + y_end, lyr->height, lyr->height);
     }
 }
 
@@ -176,26 +185,28 @@ void layer_refresh(struct LAYER *lyr, int x_str, int y_str, int x_end, int y_end
  * @param {int}           y_end  描画範囲(Y座標終点)
  * @param {int}           h0     再描画が必要なレイヤの高さ
  */
-void layer_refreshsub(struct LYRCTL *ctl, int x_str, int y_str, int x_end, int y_end, int h0){
+void layer_refreshsub(struct LYRCTL *ctl, int x_str, int y_str, int x_end, int y_end, int h0, int h1){
     int h;
     int bx, by;                        // 座標描画のためのループ用
     int bx0, bx1, by0, by1;            // レイヤ上の再描画範囲
     int vx, vy;                        // 画面上の再描画範囲
     unsigned char *buf;                // レイヤー情報のバッファ
-    unsigned char c;                   // 描画のためのバッファ格納用
     unsigned char *vram = ctl->vram;   // VRAMのアドレス
+    unsigned char *map = ctl->map;     // マップ
+    unsigned char lid;                 // レイヤID
     struct LAYER *lyr;                 // レイヤー情報を格納する構造体
+
+    // 絶対座標である再描画範囲が画面外だったら補正
+    if (x_str < 0) { x_str = 0; }
+    if (y_str < 0) { y_str = 0; }
+    if (x_end > ctl->xsize) { x_end = ctl->xsize; }
+    if (y_end > ctl->ysize) { y_end = ctl->ysize; }
 
     // 再描画が必要なレイヤより上のレイヤのみ更新すれば良い
     for (h = h0; h <= ctl->top; h++) {
         lyr = ctl->layers[h];        // レイヤー情報取得
         buf = lyr->buf;              // レイヤー情報から描画情報取得
-
-        // 絶対座標である再描画範囲が画面外だったら補正
-        if (x_str < 0) { x_str = 0; }
-        if (y_str < 0) { y_str = 0; }
-        if (x_end > ctl->xsize) { x_end = ctl->xsize; }
-        if (y_end > ctl->ysize) { y_end = ctl->ysize; }
+        lid = lyr - ctl->layers0;    // レイヤーID格納
 
         // 再描画のためには，レイヤのバッファを書き換える必要がある
         // すなわち，レイヤ上の相対座標が情報として必要
@@ -219,11 +230,10 @@ void layer_refreshsub(struct LYRCTL *ctl, int x_str, int y_str, int x_end, int y
             vy = lyr->vy0 + by;      // 描画座標
             for (bx = bx0; bx < bx1; bx++) {
                 vx = lyr->vx0 + bx;  // 描画座標
-
-                // 描画用バッファ
-                c = buf[by * lyr->bxsize + bx];
-                // 透明色でなければ描画
-                if(c != lyr->col_inv){ vram[vy * ctl->xsize + vx] = c; }
+                // 見ている点が，現在のレイヤの点なら
+                if (map[vy * ctl->xsize + vx] == lid){
+                    vram[vy * ctl->xsize + vx] = buf[by * lyr->bxsize + bx];
+                }
             }
         }
     }
@@ -248,10 +258,14 @@ void layer_slide(struct LAYER *lyr, int vx0, int vy0){
     lyr->vy0 = vy0;
     // 非表示状態でなければ，描画する
     if (lyr->height != -1){
+        // 移動前の範囲の map の更新
+        layer_refresh_map(ctl, old_vx0, old_vy0, old_vx0 + lyr->bxsize, old_vy0 + lyr->bysize, 0);
+        // 移動後の範囲の map の更新
+        layer_refresh_map(ctl, vx0, vy0, vx0 + lyr->bxsize, vy0 + lyr->bysize, lyr->height);
         // 移動前の範囲を再描画
-        layer_refreshsub(ctl, old_vx0, old_vy0, old_vx0 + lyr->bxsize, old_vy0 + lyr->bysize, 0);
+        layer_refreshsub(ctl, old_vx0, old_vy0, old_vx0 + lyr->bxsize, old_vy0 + lyr->bysize, 0, lyr->height - 1);
         // 移動後の範囲を再描画
-        layer_refreshsub(ctl, vx0, vy0, vx0 + lyr->bxsize, vy0 + lyr->bysize, lyr->height);
+        layer_refreshsub(ctl, vx0, vy0, vx0 + lyr->bxsize, vy0 + lyr->bysize, lyr->height, lyr->height);
     }
     return;
 }
@@ -268,4 +282,48 @@ void layer_free(struct LAYER *lyr){
     // レイヤを未使用状態にする
     lyr->flags = LAYER_UNUSED;
     return;
+}
+
+
+void layer_refresh_map(struct LYRCTL *ctl, int vx0, int vy0, int vx1, int vy1, int h0){
+    int h, bx, by, vx, vy, bx0, by0, bx1, by1;
+    unsigned char *buf, lid, *map = ctl->map;
+    struct LAYER *lyr;
+
+    // 画面外の場合は補正
+    if (vx0 < 0) { vx0 = 0; }
+    if (vy0 < 0) { vy0 = 0; }
+    if (vx1 > ctl->xsize) { vx1 = ctl->xsize; }
+    if (vy1 > ctl->ysize) { vy1 = ctl->ysize; }
+
+    // 上のレイヤについてループ
+    for (h=h0; h <= ctl->top; h++){
+        lyr = ctl->layers[h];
+        lid = lyr - ctl->layers0;            // ID はアドレスの引き算とする
+        buf = lyr->buf;
+
+        // 相対座標の計算
+        bx0 = vx0 - lyr->vx0;
+        by0 = vy0 - lyr->vy0;
+        bx1 = vx1 - lyr->vx0;
+        by1 = vy1 - lyr->vy0;
+
+        // 画面外の場合は補正
+        if (bx0 < 0) { bx0 = 0; }
+        if (by0 < 0) { by0 = 0; }
+        if (bx1 > lyr->bxsize) { bx1 = lyr->bxsize; }
+        if (by1 > lyr->bysize) { by1 = lyr->bysize; }
+
+        // 範囲内を描画
+        for (by = by0; by < by1; by++){
+            vy = lyr->vy0 + by;
+            for (bx = bx0; bx < bx1; bx++){
+                vx = lyr->vx0 + bx;
+                // 透明色でなければマップに格納
+                if (buf[by * lyr->bxsize + bx] != lyr->col_inv){
+                    map[vy * ctl->xsize + vx] = lid;
+                }
+            }
+        }
+    }
 }
