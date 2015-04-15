@@ -36,7 +36,6 @@ struct LYRCTL *lyrctl_init(struct MEMMANAGE *memman, unsigned char *vram, int xs
     return ctl;
 }
 
-
 /**
  * レイヤー情報のセット
  * @param {struct LAYER}  lyr     レイヤ情報保持のための構造体
@@ -108,6 +107,8 @@ void layer_updown(struct LAYER *lyr, int height){
             }
             // レイヤの枚数を減らす
             ctl->top--;
+            // 再描画
+            layer_refreshsub(ctl, lyr->vx0, lyr->vy0, lyr->vx0 + lyr->bxsize, lyr->vy0 + lyr->bysize, 0);
         } else {
             // 移動レイヤより上位のレイヤの優先度を下げる
             for (h = old_height; h > height; h--) {
@@ -116,6 +117,8 @@ void layer_updown(struct LAYER *lyr, int height){
             }
             // レイヤを移動する
             ctl->layers[height] = lyr;
+            // 再描画
+            layer_refreshsub(ctl, lyr->vx0, lyr->vy0, lyr->vx0 + lyr->bxsize, lyr->vy0 + lyr->bysize, lyr->height + 1);
         }
     } else if (old_height < height) {
         // レイヤの優先度が以前よりも高くなる
@@ -137,10 +140,12 @@ void layer_updown(struct LAYER *lyr, int height){
         }
         // レイヤを移動する
         ctl->layers[height] = lyr;
+        // 再描画
+        layer_refreshsub(ctl, lyr->vx0, lyr->vy0, lyr->vx0 + lyr->bxsize, lyr->vy0 + lyr->bysize, lyr->height);
     }
 
     // 再描画
-    layer_refreshsub(ctl, lyr->vx0, lyr->vy0, lyr->vx0 + lyr->bxsize, lyr->vy0 + lyr->bysize);
+    layer_refreshsub(ctl, lyr->vx0, lyr->vy0, lyr->vx0 + lyr->bxsize, lyr->vy0 + lyr->bysize, lyr->height);
 
     return;
 }
@@ -157,7 +162,7 @@ void layer_updown(struct LAYER *lyr, int height){
  */
 void layer_refresh(struct LAYER *lyr, int x_str, int y_str, int x_end, int y_end){
     if (lyr->height != -1){
-        layer_refreshsub(lyr->ctl, lyr->vx0 + x_str, lyr->vy0 + y_str, lyr->vx0 + x_end, lyr->vy0 + y_end);
+        layer_refreshsub(lyr->ctl, lyr->vx0 + x_str, lyr->vy0 + y_str, lyr->vx0 + x_end, lyr->vy0 + y_end, lyr->height);
     }
 }
 
@@ -169,8 +174,9 @@ void layer_refresh(struct LAYER *lyr, int x_str, int y_str, int x_end, int y_end
  * @param {int}           y_str  描画範囲(Y座標始点)
  * @param {int}           x_end  描画範囲(X座標終点)
  * @param {int}           y_end  描画範囲(Y座標終点)
+ * @param {int}           h0     再描画が必要なレイヤの高さ
  */
-void layer_refreshsub(struct LYRCTL *ctl, int x_str, int y_str, int x_end, int y_end){
+void layer_refreshsub(struct LYRCTL *ctl, int x_str, int y_str, int x_end, int y_end, int h0){
     int h;
     int bx, by;                        // 座標描画のためのループ用
     int bx0, bx1, by0, by1;            // レイヤ上の再描画範囲
@@ -180,8 +186,8 @@ void layer_refreshsub(struct LYRCTL *ctl, int x_str, int y_str, int x_end, int y
     unsigned char *vram = ctl->vram;   // VRAMのアドレス
     struct LAYER *lyr;                 // レイヤー情報を格納する構造体
 
-    // 全てのレイヤーに関してループ
-    for (h = 0; h <= ctl->top; h++) {
+    // 再描画が必要なレイヤより上のレイヤのみ更新すれば良い
+    for (h = h0; h <= ctl->top; h++) {
         lyr = ctl->layers[h];        // レイヤー情報取得
         buf = lyr->buf;              // レイヤー情報から描画情報取得
 
@@ -243,9 +249,9 @@ void layer_slide(struct LAYER *lyr, int vx0, int vy0){
     // 非表示状態でなければ，描画する
     if (lyr->height != -1){
         // 移動前の範囲を再描画
-        layer_refreshsub(ctl, old_vx0, old_vy0, old_vx0 + lyr->bxsize, old_vy0 + lyr->bysize);
+        layer_refreshsub(ctl, old_vx0, old_vy0, old_vx0 + lyr->bxsize, old_vy0 + lyr->bysize, 0);
         // 移動後の範囲を再描画
-        layer_refreshsub(ctl, vx0, vy0, vx0 + lyr->bxsize, vy0 + lyr->bysize);
+        layer_refreshsub(ctl, vx0, vy0, vx0 + lyr->bxsize, vy0 + lyr->bysize, lyr->height);
     }
     return;
 }

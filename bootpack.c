@@ -67,6 +67,7 @@ void HariMain(void)
 
     /******************************** 描画 ***********************************/
     /*** ウインドウレイヤ ***/
+    /** 現状，文字列とウインドウは特に紐付いていない **/
     //putfonts8_asc(buf_win, 160, 24, 28, COL8_000000, "Welcome to");
     //putfonts8_asc(buf_win, 160, 24, 44, COL8_000000, "  Haribote-OS!");
     layer_slide(lyr_win, 80, 72);
@@ -101,7 +102,7 @@ void HariMain(void)
 
         /* 割り込み禁止にする */
         io_cli();
-        
+
         if (fifo8_status(&keyfifo) + fifo8_status(&mousefifo) == 0){
             // 割り込みがなければ
             /* 割り込みフラグをセットし，hltする */

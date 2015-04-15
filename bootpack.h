@@ -197,6 +197,6 @@ void layer_setbuf(struct LAYER *lyr, unsigned char *buf, int xsize, int ysize, i
 struct LAYER *layer_alloc(struct LYRCTL *ctl);
 void layer_updown(struct LAYER *lyr, int height);
 void layer_refresh(struct LAYER *lyr, int x_str, int y_str, int x_end, int y_end);
-void layer_refreshsub(struct LYRCTL *ctl, int x_str, int y_str, int x_end, int y_end);
+void layer_refreshsub(struct LYRCTL *ctl, int x_str, int y_str, int x_end, int y_end, int h0);
 void layer_slide(struct LAYER *lyr, int vx0, int vy0);
 void layer_free(struct LAYER *lyr);
