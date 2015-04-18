@@ -221,6 +221,7 @@ struct TIMER {
 
 struct TIMERCTL{
     unsigned int count;               // 経過時間
+    unsigned int next;                // 次のタイマ時刻
     struct TIMER timer[MAX_TIMER];    // 複数のタイマ
 };
 extern struct TIMERCTL timerctl;

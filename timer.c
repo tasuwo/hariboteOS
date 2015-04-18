@@ -14,6 +14,7 @@ void init_pit(void){
     io_out8(PIT_CNT0, 0x9c);    // 割り込み周期の下位 8bit
     io_out8(PIT_CNT0, 0x2e);    // 割り込み周期の上位 8bit
     timerctl.count = 0;         // 経過時間の初期化
+    timerctl.next = 0xffffffff; // 最初は作動中のタイマがないため
     for (i=0; i<MAX_TIMER; i++){
         // すべてのタイマを未使用にセット
         timerctl.timer[i].flags = TIMER_UNUSED;
@@ -59,6 +60,10 @@ void timer_init(struct TIMER *timer, struct FIFO8 *fifo, unsigned char data){
 void timer_settime(struct TIMER *timer, unsigned int timeout){
     timer->timeout = timeout + timerctl.count;
     timer->flags = TIMER_FLAG_USING;
+    if (timerctl.next > timer->timeout){
+        // 次のタイムアウト時刻よりもみじかければ， next に設定
+        timerctl.next = timer->timeout;
+    }
     return;
 }
 
@@ -70,12 +75,33 @@ void inthandler20(int *esp){
     int i;
     io_out8(PIC0_OCW2, 0x60);   // PICに，IRQ-00の受付完了を通知
     timerctl.count++;           // 時間を進める
+
+    /*
+     * 使用中のタイマの中で，一番短いものの時刻が next に格納されている．
+     * なので，これに満たなければ割り込みを終了する．
+     */
+    if (timerctl.next > timerctl.count){
+        return;
+    }
+
+    // 使用中のタイマがなくなった場合には，初期値はこれになる
+    timerctl.next = 0xffffffff;
+
+    /*
+     * next に格納されている割り込み時刻と同様のタイマを探索する
+     */
     for(i=0; i<MAX_TIMER; i++){
         if (timerctl.timer[i].flags == TIMER_FLAG_USING){
+            // 使用中のタイマについて
             if (timerctl.timer[i].timeout <= timerctl.count){
-                // タイムアウトしたら，FIFO に通知
+                // タイムアウトしていたら，FIFO に通知
                 timerctl.timer[i].flags = TIMER_FLAG_ALLOC;
                 fifo8_queue(timerctl.timer[i].fifo, timerctl.timer[i].data);
+            } else {
+                // タイムアウトしておらず，かつ next よりもタイムアウト時刻が短ければ
+                if (timerctl.next > timerctl.timer[i].timeout){
+                    timerctl.next = timerctl.timer[i].timeout;
+                }
             }
         }
     }
