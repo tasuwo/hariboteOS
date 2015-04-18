@@ -222,7 +222,9 @@ struct TIMER {
 struct TIMERCTL{
     unsigned int count;               // 経過時間
     unsigned int next;                // 次のタイマ時刻
-    struct TIMER timer[MAX_TIMER];    // 複数のタイマ
+    unsigned int using;               // 動作中のタイマ数(timersの要素数)
+    struct TIMER *timers[MAX_TIMER];  // 順に並んだタイマ
+    struct TIMER timers0[MAX_TIMER];  // 順不同のタイマ
 };
 extern struct TIMERCTL timerctl;
 void init_pit(void);

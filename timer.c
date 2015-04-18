@@ -17,7 +17,7 @@ void init_pit(void){
     timerctl.next = 0xffffffff; // 最初は作動中のタイマがないため
     for (i=0; i<MAX_TIMER; i++){
         // すべてのタイマを未使用にセット
-        timerctl.timer[i].flags = TIMER_UNUSED;
+        timerctl.timers0[i].flags = TIMER_UNUSED;
     }
     return;
 }
@@ -28,10 +28,10 @@ void init_pit(void){
 struct TIMER *timer_alloc(void) {
     int i;
     for (i=0; i<MAX_TIMER; i++){
-        if (timerctl.timer[i].flags == 0){
+        if (timerctl.timers0[i].flags == 0){
             // 未使用のタイマを返す
-            timerctl.timer[i].flags = TIMER_FLAG_ALLOC;
-            return &timerctl.timer[i];
+            timerctl.timers0[i].flags = TIMER_FLAG_ALLOC;
+            return &timerctl.timers0[i];
         }
     }
     return 0;
@@ -56,14 +56,39 @@ void timer_init(struct TIMER *timer, struct FIFO8 *fifo, unsigned char data){
 
 /**
  * タイマにタイムアウトを設定する
+ * タイムアウトの早い順でタイマをセットしていかなくてはならない
  */
 void timer_settime(struct TIMER *timer, unsigned int timeout){
+    int e,i,j;
     timer->timeout = timeout + timerctl.count;
     timer->flags = TIMER_FLAG_USING;
-    if (timerctl.next > timer->timeout){
-        // 次のタイムアウト時刻よりもみじかければ， next に設定
-        timerctl.next = timer->timeout;
+
+    // 割り込み禁止
+    e = io_load_eflags();
+    io_cli;
+
+    // 挿入位置を探索
+    for (i=0; i<timerctl.using; i++){
+        if (timerctl.timers[i]->timeout >= timer->timeout){
+            break;
+        }
     }
+
+    // 挿入位置から後ろの要素をずらす
+    for (j=timerctl.using; j>i; j--){
+        timerctl.timers[j] = timerctl.timers[j - 1];
+    }
+
+    // 稼働中のタイマ数を増やす
+    timerctl.using++;
+
+    // タイマを挿入する
+    timerctl.timers[i] = timer;
+    timerctl.next = timerctl.timers[0]->timeout;
+
+    // 割り込みを戻す
+    io_store_eflags(e);
+
     return;
 }
 
@@ -72,7 +97,7 @@ void timer_settime(struct TIMER *timer, unsigned int timeout){
  * 時間を測る
  */
 void inthandler20(int *esp){
-    int i;
+    int to_timers,j;
     io_out8(PIC0_OCW2, 0x60);   // PICに，IRQ-00の受付完了を通知
     timerctl.count++;           // 時間を進める
 
@@ -84,26 +109,34 @@ void inthandler20(int *esp){
         return;
     }
 
-    // 使用中のタイマがなくなった場合には，初期値はこれになる
-    timerctl.next = 0xffffffff;
-
     /*
      * next に格納されている割り込み時刻と同様のタイマを探索する
      */
-    for(i=0; i<MAX_TIMER; i++){
-        if (timerctl.timer[i].flags == TIMER_FLAG_USING){
-            // 使用中のタイマについて
-            if (timerctl.timer[i].timeout <= timerctl.count){
-                // タイムアウトしていたら，FIFO に通知
-                timerctl.timer[i].flags = TIMER_FLAG_ALLOC;
-                fifo8_queue(timerctl.timer[i].fifo, timerctl.timer[i].data);
-            } else {
-                // タイムアウトしておらず，かつ next よりもタイムアウト時刻が短ければ
-                if (timerctl.next > timerctl.timer[i].timeout){
-                    timerctl.next = timerctl.timer[i].timeout;
-                }
-            }
+    for(to_timers=0; to_timers<timerctl.using; to_timers++){
+        if (timerctl.timers[to_timers]->timeout > timerctl.count){
+            break;
         }
+        // タイムアウトしていたら，FIFO に通知
+        timerctl.timers[to_timers]->flags = TIMER_FLAG_ALLOC;
+        fifo8_queue(timerctl.timers[to_timers]->fifo, timerctl.timers[to_timers]->data);
+    }
+
+    // i個のタイマがタイムアウトしたので，そのための処理を行う
+    // 稼働中のタイマ数を減らす
+    timerctl.using -= to_timers;
+
+    // 配列の頭から，タイムアウトしたタイマ分要素をずらす
+    // すなわち，タイムアウトしたタイマを配列から除く
+    for (j=0; j<timerctl.using; j++){
+        timerctl.timers[j] = timerctl.timers[to_timers + j];
+    }
+
+    if (timerctl.using > 0){
+        // まだ稼働中のタイマがあれば，いちばん早いタイマを next に設定
+        timerctl.next = timerctl.timers[0]->timeout;
+    } else {
+        // もうタイマがなければ，初期化
+        timerctl.next = 0xffffffff;
     }
     return;
 }
