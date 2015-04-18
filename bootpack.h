@@ -28,6 +28,7 @@ unsigned int memtest_sub(unsigned int start, unsigned int end);
 void asm_inthandler21(void);
 void asm_inthandler27(void);
 void asm_inthandler2c(void);
+void asm_inthandler20(void);
 
 /************************* fifo.c ****************************/
 struct FIFO8 {
@@ -202,3 +203,8 @@ void layer_refreshsub(struct LYRCTL *ctl, int x_str, int y_str, int x_end, int y
 void layer_slide(struct LAYER *lyr, int vx0, int vy0);
 void layer_free(struct LAYER *lyr);
 void layer_refresh_map(struct LYRCTL *ctl, int vx0, int vy0, int vx1, int vy1, int h0);
+
+
+/************************ timer.c ***************************/
+void init_pit(void);
+void inthandler20(int *esp);

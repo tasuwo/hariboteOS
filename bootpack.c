@@ -27,7 +27,8 @@ void HariMain(void)
     io_sti();                                               // 割り込み禁止を解除
     fifo8_init(&keyfifo, 32, keybuf);                       // キーボード用バッファ初期化
     fifo8_init(&mousefifo, 128, mousebuf);                  // マウス用バッファ初期化
-    io_out8(PIC0_IMR, 0xf9);                                // 割り込み許可：キーボードとPIC1(11111001)
+    init_pit();                                             // PIT(タイマ割り込み)の周期初期化
+    io_out8(PIC0_IMR, 0xf8);                                // 割り込み許可：キーボード，PIC1(11111000)，PIT
     io_out8(PIC1_IMR, 0xef);                                // 割り込み許可：マウス(11101111)
 
     init_keyboard();                                        // KBCの初期化(マウス使用モードに設定)
