@@ -57,7 +57,7 @@ void timer_init(struct TIMER *timer, struct FIFO8 *fifo, unsigned char data){
  * タイマにタイムアウトを設定する
  */
 void timer_settime(struct TIMER *timer, unsigned int timeout){
-    timer->timeout = timeout;
+    timer->timeout = timeout + timerctl.count;
     timer->flags = TIMER_FLAG_USING;
     return;
 }
@@ -72,8 +72,8 @@ void inthandler20(int *esp){
     timerctl.count++;           // 時間を進める
     for(i=0; i<MAX_TIMER; i++){
         if (timerctl.timer[i].flags == TIMER_FLAG_USING){
-            timerctl.timer[i].timeout--;
-            if (timerctl.timer[i].timeout == 0){
+            if (timerctl.timer[i].timeout <= timerctl.count){
+                // タイムアウトしたら，FIFO に通知
                 timerctl.timer[i].flags = TIMER_FLAG_ALLOC;
                 fifo8_queue(timerctl.timer[i].fifo, timerctl.timer[i].data);
             }
