@@ -206,5 +206,9 @@ void layer_refresh_map(struct LYRCTL *ctl, int vx0, int vy0, int vx1, int vy1, i
 
 
 /************************ timer.c ***************************/
+struct TIMERCTL{
+    unsigned int count;
+};
+extern struct TIMERCTL timerctl;
 void init_pit(void);
 void inthandler20(int *esp);

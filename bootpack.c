@@ -3,8 +3,8 @@
  * main
  */
 
-#include <stdio.h>
 #include "bootpack.h"
+#include <stdio.h>
 
 /* main */
 void HariMain(void)
@@ -96,7 +96,7 @@ void HariMain(void)
     while(1){
         /* ƒJƒEƒ“ƒ^ */
         count++;
-        sprintf(s, "%010d", count);
+        sprintf(s, "%010d", timerctl.count);
         boxfill8(buf_win, 160, COL8_C6C6C6, 40, 28, 119, 43);
         putfonts8_asc(buf_win, 160, 40, 28, COL8_000000, s);
         layer_refresh(lyr_win, 40, 28, 120, 44);
