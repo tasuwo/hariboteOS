@@ -11,8 +11,9 @@ void HariMain(void)
 {
     /* asmhead.nasでメモした値を取得 */
     struct BOOTINFO *binfo = (struct BOOTINFO *) ADR_BOOTINFO;
-    struct FIFO8 timerfifo;
-    char s[40], keybuf[32], mousebuf[128], timerbuf[8];
+    struct FIFO8 timerfifo, timerfifo2, timerfifo3;
+    char s[40], keybuf[32], mousebuf[128], timerbuf[8], timerbuf2[8], timerbuf3[8];
+    struct TIMER *timer, *timer2, *timer3;
     int mx, my, key, i;
     unsigned int memtotal;
     struct MOUSEINFO minfo;
@@ -29,10 +30,20 @@ void HariMain(void)
     fifo8_init(&keyfifo, 32, keybuf);                       // キーボード用バッファ初期化
     fifo8_init(&mousefifo, 128, mousebuf);                  // マウス用バッファ初期化
     fifo8_init(&timerfifo, 8, timerbuf);                    // タイマ用バッファ初期化
+    fifo8_init(&timerfifo2, 8, timerbuf2);
+    fifo8_init(&timerfifo3, 8, timerbuf3);
+    timer = timer_alloc();
+    timer2 = timer_alloc();
+    timer3 = timer_alloc();
+    timer_init(timer, &timerfifo, 1);
+    timer_init(timer2, &timerfifo2, 1);
+    timer_init(timer3, &timerfifo3, 1);
     init_pit();                                             // PIT(タイマ割り込み)の周期初期化
     io_out8(PIC0_IMR, 0xf8);                                // 割り込み許可：キーボード，PIC1(11111000)，PIT
     io_out8(PIC1_IMR, 0xef);                                // 割り込み許可：マウス(11101111)
-    settimer(1000, &timerfifo, 1);                          // タイムアウト時刻設定
+    timer_settime(timer, 1000);                          // タイムアウト時刻設定
+    timer_settime(timer2, 300);
+    timer_settime(timer3, 50);
 
     init_keyboard();                                        // KBCの初期化(マウス使用モードに設定)
     enable_mouse(&minfo);                                   // マウス有効化
@@ -106,7 +117,8 @@ void HariMain(void)
         /* 割り込み禁止にする */
         io_cli();
 
-        if (fifo8_status(&keyfifo) + fifo8_status(&mousefifo) + fifo8_status(&timerfifo) == 0){
+        if (fifo8_status(&keyfifo) + fifo8_status(&mousefifo) + fifo8_status(&timerfifo)
+            + fifo8_status(&timerfifo2) + fifo8_status(&timerfifo3) == 0){
             // 割り込みがなければ
             /* 割り込みフラグをセットし，hltする */
             //io_stihlt();
@@ -166,6 +178,23 @@ void HariMain(void)
                 io_sti();
                 putfonts8_asc(buf_back, binfo->scrnx, 0, 64, COL8_FFFFFF, "10[sec]");
                 layer_refresh(lyr_back, 0, 64, 56, 80);
+            } else if (fifo8_status(&timerfifo2) != 0){
+                i = fifo8_dequeue(&timerfifo2);
+                io_sti();
+                putfonts8_asc(buf_back, binfo->scrnx, 0, 80, COL8_FFFFFF, "3[sec]");
+                layer_refresh(lyr_back, 0, 80, 48, 96);
+            } else if (fifo8_status(&timerfifo3) != 0){
+                i = fifo8_dequeue(&timerfifo3);
+                io_sti();
+                if (i != 0){
+                    timer_init(timer3, &timerfifo3, 0);
+                    boxfill8(buf_back, binfo->scrnx, COL8_FFFFFF, 8, 96, 15, 111);
+                } else {
+                    timer_init(timer3, &timerfifo3, 1);
+                    boxfill8(buf_back, binfo->scrnx, COL8_008484, 8, 96, 15, 111);
+                }
+                timer_settime(timer3, 50);
+                layer_refresh(lyr_back, 8, 96, 16, 112);
             }
         }
     }

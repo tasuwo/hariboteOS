@@ -206,13 +206,27 @@ void layer_refresh_map(struct LYRCTL *ctl, int vx0, int vy0, int vx1, int vy1, i
 
 
 /************************ timer.c ***************************/
-struct TIMERCTL{
-    unsigned int count;      // 経過時間
+#define MAX_TIMER    500     // タイマの最大数
+#define PIT_CTRL    0x0043
+#define PIT_CNT0    0x0040
+#define TIMER_UNUSED        0    // タイマ未使用
+#define TIMER_FLAG_ALLOC    1    // タイマ確保
+#define TIMER_FLAG_USING    2    // タイマ作動中
+struct TIMER {
     unsigned int timeout;    // タイムアウトまでの残り時間
+    unsigned int  flags;     // 使用 or 未使用のフラグ
     struct FIFO8 *fifo;      // タイムアウト時にデータを送り込むバッファ
     unsigned char data;      // タイムアウト時に送信されるデータ
 };
+
+struct TIMERCTL{
+    unsigned int count;               // 経過時間
+    struct TIMER timer[MAX_TIMER];    // 複数のタイマ
+};
 extern struct TIMERCTL timerctl;
 void init_pit(void);
+struct TIMER *timer_alloc(void);
+void timer_free(struct TIMER *timer);
+void timer_init(struct TIMER *timer, struct FIFO8 *fifo, unsigned char data);
+void timer_settime(struct TIMER *timer, unsigned int timeout);
 void inthandler20(int *esp);
-void settimer(unsigned int timeout, struct FIFO8 *fifo, unsigned char data);
