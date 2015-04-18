@@ -207,8 +207,12 @@ void layer_refresh_map(struct LYRCTL *ctl, int vx0, int vy0, int vx1, int vy1, i
 
 /************************ timer.c ***************************/
 struct TIMERCTL{
-    unsigned int count;
+    unsigned int count;      // 経過時間
+    unsigned int timeout;    // タイムアウトまでの残り時間
+    struct FIFO8 *fifo;      // タイムアウト時にデータを送り込むバッファ
+    unsigned char data;      // タイムアウト時に送信されるデータ
 };
 extern struct TIMERCTL timerctl;
 void init_pit(void);
 void inthandler20(int *esp);
+void settimer(unsigned int timeout, struct FIFO8 *fifo, unsigned char data);

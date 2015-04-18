@@ -11,8 +11,9 @@ void HariMain(void)
 {
     /* asmhead.nasでメモした値を取得 */
     struct BOOTINFO *binfo = (struct BOOTINFO *) ADR_BOOTINFO;
-    char s[40], keybuf[32], mousebuf[128];
-    int mx, my, key;
+    struct FIFO8 timerfifo;
+    char s[40], keybuf[32], mousebuf[128], timerbuf[8];
+    int mx, my, key, i;
     unsigned int memtotal;
     struct MOUSEINFO minfo;
     struct MEMMANAGE *memman = (struct MEMMANAGE *) MEMMANAGE_ADDR;
@@ -27,9 +28,11 @@ void HariMain(void)
     io_sti();                                               // 割り込み禁止を解除
     fifo8_init(&keyfifo, 32, keybuf);                       // キーボード用バッファ初期化
     fifo8_init(&mousefifo, 128, mousebuf);                  // マウス用バッファ初期化
+    fifo8_init(&timerfifo, 8, timerbuf);                    // タイマ用バッファ初期化
     init_pit();                                             // PIT(タイマ割り込み)の周期初期化
     io_out8(PIC0_IMR, 0xf8);                                // 割り込み許可：キーボード，PIC1(11111000)，PIT
     io_out8(PIC1_IMR, 0xef);                                // 割り込み許可：マウス(11101111)
+    settimer(1000, &timerfifo, 1);                          // タイムアウト時刻設定
 
     init_keyboard();                                        // KBCの初期化(マウス使用モードに設定)
     enable_mouse(&minfo);                                   // マウス有効化
@@ -95,7 +98,6 @@ void HariMain(void)
     /* CPU休止 */
     while(1){
         /* カウンタ */
-        count++;
         sprintf(s, "%010d", timerctl.count);
         boxfill8(buf_win, 160, COL8_C6C6C6, 40, 28, 119, 43);
         putfonts8_asc(buf_win, 160, 40, 28, COL8_000000, s);
@@ -104,7 +106,7 @@ void HariMain(void)
         /* 割り込み禁止にする */
         io_cli();
 
-        if (fifo8_status(&keyfifo) + fifo8_status(&mousefifo) == 0){
+        if (fifo8_status(&keyfifo) + fifo8_status(&mousefifo) + fifo8_status(&timerfifo) == 0){
             // 割り込みがなければ
             /* 割り込みフラグをセットし，hltする */
             //io_stihlt();
@@ -159,6 +161,11 @@ void HariMain(void)
                     /* マウスカーソルを動かす */
                     layer_slide(lyr_mouse, mx, my);
                 }
+            } else if (fifo8_status(&timerfifo) != 0){
+                i = fifo8_dequeue(&timerfifo);
+                io_sti();
+                putfonts8_asc(buf_back, binfo->scrnx, 0, 64, COL8_FFFFFF, "10[sec]");
+                layer_refresh(lyr_back, 0, 64, 56, 80);
             }
         }
     }
