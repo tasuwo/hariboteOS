@@ -1,12 +1,21 @@
-OBJS_BOOTPACK = bootpack.obj naskfunc.obj hankaku.obj graphic.obj dsctbl.obj \
-		int.obj fifo.obj keyboard.obj mouse.obj memory.obj layer.obj timer.obj
+SOURCEPATH   = src/
+HEADERPATH   = $(SOURCEPATH)header/
+OBJECTPATH   = obj/
+RESOURCEPATH = resources/
+TOOLPATH     = ../../z_tools/
+LIBINCPATH   = ../../z_tools/haribote/
+INCPATH      = include/
 
-TOOLPATH = ../../z_tools/
-INCPATH  = ../../z_tools/haribote/
+CSOURCES=$(wildcard $(SOURCEPATH)*.c)
+ASEMBLESOURCES=$(wildcard $(SOURCEPATH)*.nas)
+OBJS_BOOTPACK= \
+	$(addprefix $(OBJECTPATH), $(notdir $(CSOURCES:.c=.obj))) \
+	$(addprefix $(OBJECTPATH), $(notdir $(ASEMBLESOURCES:.nas=.obj))) \
+	$(OBJECTPATH)hankaku.obj
 
 MAKE     = make -r
 NASK     = $(TOOLPATH)nask
-CC1      = $(TOOLPATH)gocc1 -I$(INCPATH) -Os -Wall -quiet
+CC1      = $(TOOLPATH)gocc1 -I$(LIBINCPATH) -I$(INCPATH) -Os -Wall -quiet
 GAS2NASK = $(TOOLPATH)gas2nask -a
 OBJ2BIM  = $(TOOLPATH)obj2bim
 MAKEFONT = $(TOOLPATH)makefont
@@ -18,54 +27,66 @@ IMGTOL   = $(TOOLPATH)imgtol
 COPY     = cp
 DEL      = rm -f
 
-# �f�t�H���g����
+# デフォルト動作
 
 default :
 	$(MAKE) img
 
-# �t�@�C�������K��
+# ファイル生成規則
 
-ipl10.bin : ipl10.nas Makefile
-	$(NASK) ipl10.nas ipl10.bin ipl10.lst
+# nask でアセンブラを bin にコンパイル
+$(OBJECTPATH)ipl10.bin : $(HEADERPATH)ipl10.nas Makefile
+	$(NASK) $(HEADERPATH)ipl10.nas $(OBJECTPATH)ipl10.bin $(OBJECTPATH)ipl10.lst
 
-asmhead.bin : asmhead.nas Makefile
-	$(NASK) asmhead.nas asmhead.bin asmhead.lst
+$(OBJECTPATH)asmhead.bin : $(HEADERPATH)asmhead.nas Makefile
+	$(NASK) $(HEADERPATH)asmhead.nas $(OBJECTPATH)asmhead.bin $(OBJECTPATH)asmhead.lst
 
-hankaku.bin : hankaku.txt Makefile
-	$(MAKEFONT) hankaku.txt hankaku.bin
+# makefont でフォントの bin -> obj 生成
+$(OBJECTPATH)hankaku.bin : $(RESOURCEPATH)hankaku.txt Makefile
+	$(MAKEFONT) $(RESOURCEPATH)hankaku.txt $(OBJECTPATH)hankaku.bin
 
-hankaku.obj : hankaku.bin Makefile
-	$(BIN2OBJ) hankaku.bin hankaku.obj _hankaku
+$(OBJECTPATH)hankaku.obj : $(OBJECTPATH)hankaku.bin Makefile
+	$(BIN2OBJ) $(OBJECTPATH)hankaku.bin $(OBJECTPATH)hankaku.obj _hankaku
 
-bootpack.bim : $(OBJS_BOOTPACK) Makefile
-	$(OBJ2BIM) @$(RULEFILE) out:bootpack.bim stack:3136k map:bootpack.map \
+# obj 同士をリンクし，bim を生成
+$(OBJECTPATH)bootpack.bim : $(OBJS_BOOTPACK) Makefile
+	$(OBJ2BIM) @$(RULEFILE) \
+		out:$(OBJECTPATH)bootpack.bim \
+		stack:3136k \
+		map:$(OBJECTPATH)bootpack.map \
 		$(OBJS_BOOTPACK)
 # 3MB+64KB=3136KB
 
-bootpack.hrb : bootpack.bim Makefile
-	$(BIM2HRB) bootpack.bim bootpack.hrb 0
+# 「はりぼてOS」用の形式に変換
+$(OBJECTPATH)bootpack.hrb : $(OBJECTPATH)bootpack.bim Makefile
+	$(BIM2HRB) $(OBJECTPATH)bootpack.bim $(OBJECTPATH)bootpack.hrb 0
 
-haribote.sys : asmhead.bin bootpack.hrb Makefile
-	cat asmhead.bin bootpack.hrb > haribote.sys
+# cat コマンドにより asmhead と bootpack を連結し，bootpack.hrb を生成
+$(OBJECTPATH)haribote.sys : $(OBJECTPATH)asmhead.bin $(OBJECTPATH)bootpack.hrb Makefile
+	cat $(OBJECTPATH)asmhead.bin $(OBJECTPATH)bootpack.hrb > $(OBJECTPATH)haribote.sys
 
-haribote.img : ipl10.bin haribote.sys Makefile
+# edimg によってディスクイメージに保存
+haribote.img : $(OBJECTPATH)ipl10.bin $(OBJECTPATH)haribote.sys Makefile
 	$(EDIMG)   imgin:../../z_tools/fdimg0at.tek \
-		wbinimg src:ipl10.bin len:512 from:0 to:0 \
-		copy from:haribote.sys to:@: \
+		wbinimg src:$(OBJECTPATH)ipl10.bin len:512 from:0 to:0 \
+		copy from:$(OBJECTPATH)haribote.sys to:@: \
 		imgout:haribote.img
 
-# ��ʋK��
+# 一般規則
 
-%.gas : %.c Makefile
-	$(CC1) -o $*.gas $*.c
+# cc (Cコンパイラ) でCコードをアセンブリコード(.gas)にコンパイル
+$(SOURCEPATH)%.gas : $(SOURCEPATH)%.c Makefile
+	$(CC1) -o $(SOURCEPATH)$*.gas $(SOURCEPATH)$*.c
 
-%.nas : %.gas Makefile
-	$(GAS2NASK) $*.gas $*.nas
+# アセンブラ gas 用のアセンブリコードを，nask 用に変換する
+$(SOURCEPATH)%.nas : $(SOURCEPATH)%.gas Makefile
+	$(GAS2NASK) $(SOURCEPATH)$*.gas $(SOURCEPATH)$*.nas
 
-%.obj : %.nas Makefile
-	$(NASK) $*.nas $*.obj $*.lst
+# アセンブラ nask によってアセンブルし obj を生成
+$(OBJECTPATH)%.obj : $(SOURCEPATH)%.nas Makefile
+	$(NASK) $(SOURCEPATH)$*.nas $(OBJECTPATH)$*.obj $(OBJECTPATH)$*.lst
 
-# �R�}���h
+# コマンド
 
 img :
 	$(MAKE) haribote.img
@@ -80,13 +101,7 @@ install :
 	$(IMGTOL) w a: haribote.img
 
 clean :
-	-$(DEL) *.bin
-	-$(DEL) *.lst
-	-$(DEL) *.obj
-	-$(DEL) bootpack.map
-	-$(DEL) bootpack.bim
-	-$(DEL) bootpack.hrb
-	-$(DEL) haribote.sys
+	-$(DEL) obj/*
 
 src_only :
 	$(MAKE) clean
