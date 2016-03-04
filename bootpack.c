@@ -9,7 +9,7 @@
 /* main */
 void HariMain(void)
 {
-    /* asmhead.nas‚Åƒƒ‚‚µ‚½’l‚ğæ“¾ */
+    /* asmhead.nasã§ãƒ¡ãƒ¢ã—ãŸå€¤ã‚’å–å¾— */
     struct BOOTINFO *binfo = (struct BOOTINFO *) ADR_BOOTINFO;
     struct FIFO8 timerfifo, timerfifo2, timerfifo3;
     char s[40], keybuf[32], mousebuf[128], timerbuf[8], timerbuf2[8], timerbuf3[8];
@@ -18,18 +18,18 @@ void HariMain(void)
     unsigned int memtotal;
     struct MOUSEINFO minfo;
     struct MEMMANAGE *memman = (struct MEMMANAGE *) MEMMANAGE_ADDR;
-    struct LYRCTL *lyrctl;                                            // ƒŒƒCƒ„§Œä—p‚Ì\‘¢‘Ì
-    struct LAYER *lyr_back, *lyr_mouse, *lyr_win;                     // ŠeƒŒƒCƒ„
-    unsigned char *buf_back, buf_mouse[256], *buf_win;                // ŠeƒŒƒCƒ„‚Ìƒoƒbƒtƒ@
+    struct LYRCTL *lyrctl;                                            // ãƒ¬ã‚¤ãƒ¤åˆ¶å¾¡ç”¨ã®æ§‹é€ ä½“
+    struct LAYER *lyr_back, *lyr_mouse, *lyr_win;                     // å„ãƒ¬ã‚¤ãƒ¤
+    unsigned char *buf_back, buf_mouse[256], *buf_win;                // å„ãƒ¬ã‚¤ãƒ¤ã®ãƒãƒƒãƒ•ã‚¡
     unsigned int count = 0;
 
-    /* ‰Šú‰»ˆ— */
-    init_gdtidt();                                          // GDTCIDT‰Šú‰»
-    init_pic();                                             // PIC‰Šú‰»
-    io_sti();                                               // Š„‚è‚İ‹Ö~‚ğ‰ğœ
-    fifo8_init(&keyfifo, 32, keybuf);                       // ƒL[ƒ{[ƒh—pƒoƒbƒtƒ@‰Šú‰»
-    fifo8_init(&mousefifo, 128, mousebuf);                  // ƒ}ƒEƒX—pƒoƒbƒtƒ@‰Šú‰»
-    fifo8_init(&timerfifo, 8, timerbuf);                    // ƒ^ƒCƒ}—pƒoƒbƒtƒ@‰Šú‰»
+    /* åˆæœŸåŒ–å‡¦ç† */
+    init_gdtidt();                                          // GDTï¼ŒIDTåˆæœŸåŒ–
+    init_pic();                                             // PICåˆæœŸåŒ–
+    io_sti();                                               // å‰²ã‚Šè¾¼ã¿ç¦æ­¢ã‚’è§£é™¤
+    fifo8_init(&keyfifo, 32, keybuf);                       // ã‚­ãƒ¼ãƒœãƒ¼ãƒ‰ç”¨ãƒãƒƒãƒ•ã‚¡åˆæœŸåŒ–
+    fifo8_init(&mousefifo, 128, mousebuf);                  // ãƒã‚¦ã‚¹ç”¨ãƒãƒƒãƒ•ã‚¡åˆæœŸåŒ–
+    fifo8_init(&timerfifo, 8, timerbuf);                    // ã‚¿ã‚¤ãƒç”¨ãƒãƒƒãƒ•ã‚¡åˆæœŸåŒ–
     fifo8_init(&timerfifo2, 8, timerbuf2);
     fifo8_init(&timerfifo3, 8, timerbuf3);
     timer = timer_alloc();
@@ -38,125 +38,125 @@ void HariMain(void)
     timer_init(timer, &timerfifo, 1);
     timer_init(timer2, &timerfifo2, 1);
     timer_init(timer3, &timerfifo3, 1);
-    init_pit();                                             // PIT(ƒ^ƒCƒ}Š„‚è‚İ)‚ÌüŠú‰Šú‰»
-    io_out8(PIC0_IMR, 0xf8);                                // Š„‚è‚İ‹–‰ÂFƒL[ƒ{[ƒhCPIC1(11111000)CPIT
-    io_out8(PIC1_IMR, 0xef);                                // Š„‚è‚İ‹–‰ÂFƒ}ƒEƒX(11101111)
-    timer_settime(timer, 1000);                          // ƒ^ƒCƒ€ƒAƒEƒgİ’è
+    init_pit();                                             // PIT(ã‚¿ã‚¤ãƒå‰²ã‚Šè¾¼ã¿)ã®å‘¨æœŸåˆæœŸåŒ–
+    io_out8(PIC0_IMR, 0xf8);                                // å‰²ã‚Šè¾¼ã¿è¨±å¯ï¼šã‚­ãƒ¼ãƒœãƒ¼ãƒ‰ï¼ŒPIC1(11111000)ï¼ŒPIT
+    io_out8(PIC1_IMR, 0xef);                                // å‰²ã‚Šè¾¼ã¿è¨±å¯ï¼šãƒã‚¦ã‚¹(11101111)
+    timer_settime(timer, 1000);                          // ã‚¿ã‚¤ãƒ ã‚¢ã‚¦ãƒˆæ™‚åˆ»è¨­å®š
     timer_settime(timer2, 300);
     timer_settime(timer3, 50);
 
-    init_keyboard();                                        // KBC‚Ì‰Šú‰»(ƒ}ƒEƒXg—pƒ‚[ƒh‚Éİ’è)
-    enable_mouse(&minfo);                                   // ƒ}ƒEƒX—LŒø‰»
+    init_keyboard();                                        // KBCã®åˆæœŸåŒ–(ãƒã‚¦ã‚¹ä½¿ç”¨ãƒ¢ãƒ¼ãƒ‰ã«è¨­å®š)
+    enable_mouse(&minfo);                                   // ãƒã‚¦ã‚¹æœ‰åŠ¹åŒ–
 
-    memtotal = memtest(0x00400000, 0xbfffffff);             // g—p‰Â”\‚Èƒƒ‚ƒŠ‚ğƒ`ƒFƒbƒN‚·‚é
-    memman_init(memman);                                    // ƒƒ‚ƒŠŠÇ——p‚Ì\‘¢‘Ì‰Šú‰»
-    memman_free(memman, 0x00001000, 0x0009e000);            // HHH
-    memman_free(memman, 0x00400000, memtotal - 0x00400000); // 0x00400000ˆÈ~‚Ìƒƒ‚ƒŠ‚ğ‰ğ•ú
+    memtotal = memtest(0x00400000, 0xbfffffff);             // ä½¿ç”¨å¯èƒ½ãªãƒ¡ãƒ¢ãƒªã‚’ãƒã‚§ãƒƒã‚¯ã™ã‚‹
+    memman_init(memman);                                    // ãƒ¡ãƒ¢ãƒªç®¡ç†ç”¨ã®æ§‹é€ ä½“åˆæœŸåŒ–
+    memman_free(memman, 0x00001000, 0x0009e000);            // ï¼Ÿï¼Ÿï¼Ÿ
+    memman_free(memman, 0x00400000, memtotal - 0x00400000); // 0x00400000ä»¥é™ã®ãƒ¡ãƒ¢ãƒªã‚’è§£æ”¾
 
-    /* •`‰æ‚Ì‚½‚ß‚Ì‰Šú‰»ˆ— */
-    init_palette();                                                         // ƒpƒŒƒbƒg‰Šú‰»
-    lyrctl = lyrctl_init(memman, binfo->vram, binfo->scrnx, binfo->scrny);  // ƒŒƒCƒ„§Œä—p‚Ì\‘¢‘Ì‰Šú‰»
+    /* æç”»ã®ãŸã‚ã®åˆæœŸåŒ–å‡¦ç† */
+    init_palette();                                                         // ãƒ‘ãƒ¬ãƒƒãƒˆåˆæœŸåŒ–
+    lyrctl = lyrctl_init(memman, binfo->vram, binfo->scrnx, binfo->scrny);  // ãƒ¬ã‚¤ãƒ¤åˆ¶å¾¡ç”¨ã®æ§‹é€ ä½“åˆæœŸåŒ–
 
-    /* ƒƒ‚ƒŠŠm•Û */
-    // ŠeƒŒƒCƒ„
+    /* ãƒ¡ãƒ¢ãƒªç¢ºä¿ */
+    // å„ãƒ¬ã‚¤ãƒ¤
     lyr_back  = layer_alloc(lyrctl);
     lyr_mouse = layer_alloc(lyrctl);
     lyr_win   = layer_alloc(lyrctl);
-    // ŠeƒŒƒCƒ„‚Ìƒoƒbƒtƒ@(ƒ}ƒEƒX‚Í256ŒÅ’è)
+    // å„ãƒ¬ã‚¤ãƒ¤ã®ãƒãƒƒãƒ•ã‚¡(ãƒã‚¦ã‚¹ã¯256å›ºå®š)
     buf_back  = (unsigned char *) memman_alloc_4k(memman, binfo->scrnx * binfo->scrny);
     buf_win   = (unsigned char *) memman_alloc_4k(memman,160 * 52);
 
-    /* ƒŒƒCƒ„İ’è */
-    // ƒŒƒCƒ„§Œä\‘¢‘Ì‚Æ‚ÌƒoƒCƒ“ƒfƒBƒ“ƒO
+    /* ãƒ¬ã‚¤ãƒ¤è¨­å®š */
+    // ãƒ¬ã‚¤ãƒ¤åˆ¶å¾¡æ§‹é€ ä½“ã¨ã®ãƒã‚¤ãƒ³ãƒ‡ã‚£ãƒ³ã‚°
     layer_setbuf(lyr_back,  buf_back,  binfo->scrnx, binfo->scrny, -1);
     layer_setbuf(lyr_mouse, buf_mouse, 16,  16, 99);
     layer_setbuf(lyr_win,   buf_win,   160, 52, -1);
-    // ƒoƒbƒtƒ@‚ğ‰Šú‰»
-    init_screen8(buf_back, binfo->scrnx, binfo->scrny);  // OS‰Šú‰æ–Ê
-    init_mouse_cursor8(buf_mouse, 99);                   // ƒ}ƒEƒX
-    make_window8(buf_win, 160, 52, "counter");            // ƒEƒCƒ“ƒhƒE
-    // —Dæ“x‚ğİ’è
+    // ãƒãƒƒãƒ•ã‚¡ã‚’åˆæœŸåŒ–
+    init_screen8(buf_back, binfo->scrnx, binfo->scrny);  // OSåˆæœŸç”»é¢
+    init_mouse_cursor8(buf_mouse, 99);                   // ãƒã‚¦ã‚¹
+    make_window8(buf_win, 160, 52, "counter");            // ã‚¦ã‚¤ãƒ³ãƒ‰ã‚¦
+    // å„ªå…ˆåº¦ã‚’è¨­å®š
     layer_updown(lyr_back,  0);
     layer_updown(lyr_mouse, 2);
     layer_updown(lyr_win,   1);
 
-    /******************************** •`‰æ ***********************************/
-    /*** ƒEƒCƒ“ƒhƒEƒŒƒCƒ„ ***/
-    /** Œ»óC•¶š—ñ‚ÆƒEƒCƒ“ƒhƒE‚Í“Á‚É•R•t‚¢‚Ä‚¢‚È‚¢ **/
+    /******************************** æç”» ***********************************/
+    /*** ã‚¦ã‚¤ãƒ³ãƒ‰ã‚¦ãƒ¬ã‚¤ãƒ¤ ***/
+    /** ç¾çŠ¶ï¼Œæ–‡å­—åˆ—ã¨ã‚¦ã‚¤ãƒ³ãƒ‰ã‚¦ã¯ç‰¹ã«ç´ä»˜ã„ã¦ã„ãªã„ **/
     //putfonts8_asc(buf_win, 160, 24, 28, COL8_000000, "Welcome to");
     //putfonts8_asc(buf_win, 160, 24, 44, COL8_000000, "  Haribote-OS!");
     layer_slide(lyr_win, 80, 72);
 
-    /*** ƒ}ƒEƒXƒŒƒCƒ„ ***/
+    /*** ãƒã‚¦ã‚¹ãƒ¬ã‚¤ãƒ¤ ***/
     mx = (binfo->scrnx - 16) / 2;
     my = (binfo->scrny - 28 - 16) / 2;
-    layer_slide(lyr_mouse, mx, my);                                    // ƒ}ƒEƒX•`‰æˆÊ’u
+    layer_slide(lyr_mouse, mx, my);                                    // ãƒã‚¦ã‚¹æç”»ä½ç½®
 
-    /*** ”wŒiƒŒƒCƒ„ ***/
-    layer_slide(lyr_back, 0, 0);                                       // ”wŒi•`‰æˆÊ’u
-    // ƒ}ƒEƒXƒJ[ƒ\ƒ‹‚ÌÀ•W
-    sprintf(s, "(%3d, %3d)", mx, my);                                  // ƒƒ‚ƒŠ‚É‘‚«‚İ
-    putfonts8_asc(buf_back, binfo->scrnx, 0, 0, COL8_FFFFFF, s);       // ƒoƒbƒtƒ@‚ÉŠi”[
-    // ƒƒ‚ƒŠ—e—ÊCƒƒ‚ƒŠ‹ó‚«ó‘Ô
+    /*** èƒŒæ™¯ãƒ¬ã‚¤ãƒ¤ ***/
+    layer_slide(lyr_back, 0, 0);                                       // èƒŒæ™¯æç”»ä½ç½®
+    // ãƒã‚¦ã‚¹ã‚«ãƒ¼ã‚½ãƒ«ã®åº§æ¨™
+    sprintf(s, "(%3d, %3d)", mx, my);                                  // ãƒ¡ãƒ¢ãƒªã«æ›¸ãè¾¼ã¿
+    putfonts8_asc(buf_back, binfo->scrnx, 0, 0, COL8_FFFFFF, s);       // ãƒãƒƒãƒ•ã‚¡ã«æ ¼ç´
+    // ãƒ¡ãƒ¢ãƒªå®¹é‡ï¼Œãƒ¡ãƒ¢ãƒªç©ºãçŠ¶æ…‹
     sprintf(s, "memory %dMB  free : %dKB",
-            memtotal / (1024 * 1024), memman_total(memman) / 1024);    // ƒƒ‚ƒŠ‚É‘‚«‚İ
-    putfonts8_asc(buf_back, binfo->scrnx, 0, 32, COL8_FFFFFF, s);      // ƒoƒbƒtƒ@‚ÉŠi”[
+            memtotal / (1024 * 1024), memman_total(memman) / 1024);    // ãƒ¡ãƒ¢ãƒªã«æ›¸ãè¾¼ã¿
+    putfonts8_asc(buf_back, binfo->scrnx, 0, 32, COL8_FFFFFF, s);      // ãƒãƒƒãƒ•ã‚¡ã«æ ¼ç´
 
-    /*** ŠeƒŒƒCƒ„‚Ì•`‰æ ***/
+    /*** å„ãƒ¬ã‚¤ãƒ¤ã®æç”» ***/
     layer_refresh(lyr_back, 0, 0, binfo->scrnx, 48);
     /*************************************************************************/
 
-    /* CPU‹x~ */
+    /* CPUä¼‘æ­¢ */
     while(1){
-        /* ƒJƒEƒ“ƒ^ */
+        /* ã‚«ã‚¦ãƒ³ã‚¿ */
         sprintf(s, "%010d", timerctl.count);
         boxfill8(buf_win, 160, COL8_C6C6C6, 40, 28, 119, 43);
         putfonts8_asc(buf_win, 160, 40, 28, COL8_000000, s);
         layer_refresh(lyr_win, 40, 28, 120, 44);
 
-        /* Š„‚è‚İ‹Ö~‚É‚·‚é */
+        /* å‰²ã‚Šè¾¼ã¿ç¦æ­¢ã«ã™ã‚‹ */
         io_cli();
 
         if (fifo8_status(&keyfifo) + fifo8_status(&mousefifo) + fifo8_status(&timerfifo)
             + fifo8_status(&timerfifo2) + fifo8_status(&timerfifo3) == 0){
-            // Š„‚è‚İ‚ª‚È‚¯‚ê‚Î
-            /* Š„‚è‚İƒtƒ‰ƒO‚ğƒZƒbƒg‚µChlt‚·‚é */
+            // å‰²ã‚Šè¾¼ã¿ãŒãªã‘ã‚Œã°
+            /* å‰²ã‚Šè¾¼ã¿ãƒ•ãƒ©ã‚°ã‚’ã‚»ãƒƒãƒˆã—ï¼Œhltã™ã‚‹ */
             //io_stihlt();
             io_sti();
         } else {
-            /* ƒL[ƒ{[ƒhCƒ}ƒEƒX‚Ì‡‚É’²‚×‚é */
+            /* ã‚­ãƒ¼ãƒœãƒ¼ãƒ‰ï¼Œãƒã‚¦ã‚¹ã®é †ã«èª¿ã¹ã‚‹ */
             if (fifo8_status(&keyfifo) != 0) {
-                /* ƒL[‚ğ“Ç‚İ‚Ş */
+                /* ã‚­ãƒ¼ã‚’èª­ã¿è¾¼ã‚€ */
                 key = fifo8_dequeue(&keyfifo);
-                /* Š„‚è‚İƒtƒ‰ƒO‚ğƒZƒbƒg‚·‚é */
+                /* å‰²ã‚Šè¾¼ã¿ãƒ•ãƒ©ã‚°ã‚’ã‚»ãƒƒãƒˆã™ã‚‹ */
                 io_sti();
 
-                /* ‰Ÿ‰º‚³‚ê‚½ƒL[‚Ì•`‰æ */
-                sprintf(s, "%02X", key);                                         // ƒƒ‚ƒŠ‚É•¶š—ñ‚ğ‘‚«o‚·
-                boxfill8(buf_back, binfo->scrnx, COL8_008484, 0, 16, 15, 31);    // ƒoƒbƒtƒ@‚ÌƒNƒŠƒA(“§–¾F‚Å“h‚è‚Â‚Ô‚µ)
-                putfonts8_asc(buf_back, binfo->scrnx, 0, 16, COL8_FFFFFF, s);    // •¶š‚ğƒoƒbƒtƒ@‚ÉŠi”[
-                layer_refresh(lyr_back, 0, 16, 16, 32);                          // •¶š—ñ‚Ì•\¦”ÍˆÍ‚Ì•`‰æ‚ğXV
+                /* æŠ¼ä¸‹ã•ã‚ŒãŸã‚­ãƒ¼ã®æç”» */
+                sprintf(s, "%02X", key);                                         // ãƒ¡ãƒ¢ãƒªã«æ–‡å­—åˆ—ã‚’æ›¸ãå‡ºã™
+                boxfill8(buf_back, binfo->scrnx, COL8_008484, 0, 16, 15, 31);    // ãƒãƒƒãƒ•ã‚¡ã®ã‚¯ãƒªã‚¢(é€æ˜è‰²ã§å¡—ã‚Šã¤ã¶ã—)
+                putfonts8_asc(buf_back, binfo->scrnx, 0, 16, COL8_FFFFFF, s);    // æ–‡å­—ã‚’ãƒãƒƒãƒ•ã‚¡ã«æ ¼ç´
+                layer_refresh(lyr_back, 0, 16, 16, 32);                          // æ–‡å­—åˆ—ã®è¡¨ç¤ºç¯„å›²ã®æç”»ã‚’æ›´æ–°
 
             } else if (fifo8_status(&mousefifo) != 0) {
-                /* ƒf[ƒ^‚Ìæ“¾ */
+                /* ãƒ‡ãƒ¼ã‚¿ã®å–å¾— */
                 key = fifo8_dequeue(&mousefifo);
-                /* Š„‚è‚İƒtƒ‰ƒO‚ğƒZƒbƒg‚·‚é */
+                /* å‰²ã‚Šè¾¼ã¿ãƒ•ãƒ©ã‚°ã‚’ã‚»ãƒƒãƒˆã™ã‚‹ */
                 io_sti();
 
-                // ƒ}ƒEƒX‚ÌÀ•W•`‰æ
+                // ãƒã‚¦ã‚¹ã®åº§æ¨™æç”»
                 if (mouse_decode(&minfo, key) != 0){
-                    /* ƒf[ƒ^‚ª3ƒoƒCƒg‘µ‚Á‚½‚Ì‚Å•\¦ */
+                    /* ãƒ‡ãƒ¼ã‚¿ãŒ3ãƒã‚¤ãƒˆæƒã£ãŸã®ã§è¡¨ç¤º */
 
-                    /* •`‰æFƒ}ƒEƒX‚©‚ç‚Ì“ü—Í */
-                    sprintf(s, "[lcr %4d %4d]", minfo.x, minfo.y);                                 // ƒƒ‚ƒŠ‚É•¶š—ñ‚ğ‘‚«o‚·
+                    /* æç”»ï¼šãƒã‚¦ã‚¹ã‹ã‚‰ã®å…¥åŠ› */
+                    sprintf(s, "[lcr %4d %4d]", minfo.x, minfo.y);                                 // ãƒ¡ãƒ¢ãƒªã«æ–‡å­—åˆ—ã‚’æ›¸ãå‡ºã™
                     if ((minfo.btn & 0x01) != 0) { s[1] = 'L'; }
                     if ((minfo.btn & 0x02) != 0) { s[3] = 'R'; }
                     if ((minfo.btn & 0x04) != 0) { s[2] = 'C'; }
-                    boxfill8(buf_back, binfo->scrnx, COL8_008484, 32, 16, 32 + 15 * 8 - 1, 31);    // ƒoƒbƒtƒ@‚ÌƒNƒŠƒA(“§–¾F‚Å“h‚è‚Â‚Ô‚µ)
-                    putfonts8_asc(buf_back, binfo->scrnx, 32, 16, COL8_FFFFFF, s);                 // •¶š‚ğƒoƒbƒtƒ@‚ÉŠi”[
-                    layer_refresh(lyr_back, 32, 16, 32 + 15 * 8, 32);                              // •¶š—ñ‚Ì•\¦”ÍˆÍ‚Ì•`‰æ‚ğXV
+                    boxfill8(buf_back, binfo->scrnx, COL8_008484, 32, 16, 32 + 15 * 8 - 1, 31);    // ãƒãƒƒãƒ•ã‚¡ã®ã‚¯ãƒªã‚¢(é€æ˜è‰²ã§å¡—ã‚Šã¤ã¶ã—)
+                    putfonts8_asc(buf_back, binfo->scrnx, 32, 16, COL8_FFFFFF, s);                 // æ–‡å­—ã‚’ãƒãƒƒãƒ•ã‚¡ã«æ ¼ç´
+                    layer_refresh(lyr_back, 32, 16, 32 + 15 * 8, 32);                              // æ–‡å­—åˆ—ã®è¡¨ç¤ºç¯„å›²ã®æç”»ã‚’æ›´æ–°
 
-                    /* ƒ}ƒEƒXƒJ[ƒ\ƒ‹‚ÌˆÚ“®‚µ‚½À•W */
+                    /* ãƒã‚¦ã‚¹ã‚«ãƒ¼ã‚½ãƒ«ã®ç§»å‹•ã—ãŸåº§æ¨™ */
                     mx += minfo.x;
                     my += minfo.y;
                     if (mx < 0) { mx = 0; }
@@ -164,13 +164,13 @@ void HariMain(void)
                     if (mx > binfo->scrnx - 1) { mx = binfo->scrnx - 1; }
                     if (my > binfo->scrny - 1) { my = binfo->scrny - 1; }
 
-                    /* •`‰æFƒ}ƒEƒXƒJ[ƒ\ƒ‹‚ÌÀ•W */
-                    sprintf(s, "(%3d, %3d)", mx, my);                            // ƒƒ‚ƒŠ‚É•¶š—ñ‚ğ‘‚«o‚·
-                    boxfill8(buf_back, binfo->scrnx, COL8_008484, 0, 0, 79, 15); // •`‰æ”ÍˆÍ‚ÌƒNƒŠƒA(“§–¾F‚Å“h‚è‚Â‚Ô‚µ)
-                    putfonts8_asc(buf_back, binfo->scrnx, 0, 0, COL8_FFFFFF, s); // •¶š‚ğƒoƒbƒtƒ@‚ÉŠi”[
-                    layer_refresh(lyr_back, 0, 0, 80, 16);                       // •`‰æ”ÍˆÍ‚Ì•\¦XV
+                    /* æç”»ï¼šãƒã‚¦ã‚¹ã‚«ãƒ¼ã‚½ãƒ«ã®åº§æ¨™ */
+                    sprintf(s, "(%3d, %3d)", mx, my);                            // ãƒ¡ãƒ¢ãƒªã«æ–‡å­—åˆ—ã‚’æ›¸ãå‡ºã™
+                    boxfill8(buf_back, binfo->scrnx, COL8_008484, 0, 0, 79, 15); // æç”»ç¯„å›²ã®ã‚¯ãƒªã‚¢(é€æ˜è‰²ã§å¡—ã‚Šã¤ã¶ã—)
+                    putfonts8_asc(buf_back, binfo->scrnx, 0, 0, COL8_FFFFFF, s); // æ–‡å­—ã‚’ãƒãƒƒãƒ•ã‚¡ã«æ ¼ç´
+                    layer_refresh(lyr_back, 0, 0, 80, 16);                       // æç”»ç¯„å›²ã®è¡¨ç¤ºæ›´æ–°
 
-                    /* ƒ}ƒEƒXƒJ[ƒ\ƒ‹‚ğ“®‚©‚· */
+                    /* ãƒã‚¦ã‚¹ã‚«ãƒ¼ã‚½ãƒ«ã‚’å‹•ã‹ã™ */
                     layer_slide(lyr_mouse, mx, my);
                 }
             } else if (fifo8_status(&timerfifo) != 0){
